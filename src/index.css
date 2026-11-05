@@ -13,6 +13,10 @@
 .detail-chip .chip-label{font-weight:700}
 .detail-explanation-box{background:#f8fafc;border:1px solid #e2ecf4;border-left:4px solid #096fa9;border-radius:6px;padding:16px 20px;margin:14px 0 24px;color:#20344a;font-size:13.5px;line-height:1.7}
 .detail-explanation-box p{margin:6px 0}
+.explanation-lead-para{font-weight:700;color:#173451;margin:4px 0 10px;font-size:14px}
+.explanation-bullet-list{margin:8px 0;padding-left:22px;list-style-type:disc}
+.explanation-bullet-item{margin:7px 0;line-height:1.6;color:#243b53}
+.bullet-title{color:#096fa9;font-weight:700;margin-right:6px}
 .bullet-point{padding-left:10px}
 button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #168ac3;outline-offset:3px}
 .dictionary-entry{display:block;width:100%;text-align:left;line-height:1.5;white-space:normal}

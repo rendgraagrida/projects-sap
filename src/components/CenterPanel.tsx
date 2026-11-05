@@ -128,6 +128,43 @@ function SettlementLab() {
     {feedback.text && <div role={feedback.error ? 'alert' : 'status'} className={`notice ${feedback.error ? 'error' : ''}`}>{feedback.text}</div>}
   </>;
 }
+function renderExplanation(text?: string) {
+  if (!text) return null;
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const elements: React.ReactNode[] = [];
+  let currentBullets: string[] = [];
+  const flushBullets = () => {
+    if (currentBullets.length) {
+      elements.push(
+        <ul className="explanation-bullet-list" key={`b-${elements.length}`}>
+          {currentBullets.map((b, i) => {
+            const clean = b.replace(/^[•\-*]\s*/, '');
+            const match = /^([^:]+):(.*)$/.exec(clean);
+            return (
+              <li key={i} className="explanation-bullet-item">
+                {match ? <>
+                  <strong className="bullet-title">{match[1].trim()}:</strong>
+                  <span>{match[2]}</span>
+                </> : <span>{clean}</span>}
+              </li>
+            );
+          })}
+        </ul>
+      );
+      currentBullets = [];
+    }
+  };
+  for (const line of lines) {
+    if (line.startsWith('•') || line.startsWith('-') || line.startsWith('*')) {
+      currentBullets.push(line);
+    } else {
+      flushBullets();
+      elements.push(<p key={`p-${elements.length}`} className="explanation-lead-para">{line}</p>);
+    }
+  }
+  flushBullets();
+  return elements;
+}
 
 export function CenterPanel() {
   const store = useSapStore();
@@ -155,7 +192,7 @@ export function CenterPanel() {
         <h1>{entry.code}</h1><p className="lead-description">{entry.description}</p>
         <div className="detail-chip">Referensi / padanan: {entry.detail}</div>
         <h2>Keterangan dan batas penerapan</h2>
-        <div className="detail-explanation-box">{entry.explanation?.split('\n').map((line, index) => <p key={index}>{line}</p>)}</div>
+        <div className="detail-explanation-box">{renderExplanation(entry.explanation)}</div>
         <p>Rujukan fungsi umum; ketersediaan transaksi, aplikasi Fiori, dan konfigurasi mengikuti edisi serta release SAP. Bukan koneksi ke sistem SAP perusahaan.</p>
         {entry.sources?.length ? <section aria-label="Sumber resmi kamus"><h2>Sumber resmi</h2><ul>{entry.sources.filter(source => /^https:\/\//i.test(source.url)).map(source => <li key={source.url}><a href={source.url} target="_blank" rel="noopener noreferrer">{source.title}</a></li>)}</ul></section> : null}
       </> : <><h1>Kamus SAP</h1><p>Pilih entri yang sesuai di daftar kamus. Tidak ada entri yang cocok dengan filter saat ini.</p></>}
