@@ -6,6 +6,12 @@ Selamat datang di repositori pembelajaran mendalam dan komprehensif untuk tiga m
 - 💰 **SAP FI (Financial Accounting):** Buku Besar (*General Ledger & Universal Journal `ACDOCA`*), Hutang Usaha (*AP & `F110`*), Piutang Usaha (*AR*), Akuntansi Aset Tetap (*FI-AA & AuC*), serta Perpajakan.
 
 ---
+## Aplikasi lokal
+
+Lab menggunakan Bun, Vite, React, dan TypeScript. Di root proyek jalankan `bun install` sekali, lalu `bun run dev` dan buka alamat yang ditampilkan Vite. `bun run typecheck`, `bun test`, dan `bun run build` tersedia untuk pemeriksaan integrasi.
+
+Seluruh transaksi dan tabel di aplikasi adalah simulasi pendidikan berbasis data sintetis, bukan koneksi ke SAP maupun pembayaran riil. Tarif pajak dan konfigurasi OBYC adalah fixture pembelajaran, bukan nasihat pajak atau konfigurasi universal. Pada kasus Modul 05, budget $100.000 menghasilkan actual dan kapitalisasi $90.000, dengan sisa $10.000. Alokasi stok Q yang ditahan di monitor AVAC adalah kebijakan lab, bukan klaim bahwa baris procurement COOI tetap terbuka.
+
 
 ## 🗺️ Daftar Modul Kurikulum (Urutan Belajar yang Direkomendasikan)
 
