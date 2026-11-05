@@ -7,7 +7,7 @@ import { projectSapTables } from '../lib/sap-tables';
 import { useSapStore } from '../store/use-sap-store';
 
 export function RightPanel() {
-  const { state, edition, view, sandboxJournal, avacBudget, selectedStepId } = useSapStore();
+  const { state, edition, view, sandboxJournal, avacBudget, selectedStepId, setSelectedStepId } = useSapStore();
   const [tab, setTab] = useState<'detail' | 'journal' | 'budget' | 'tables'>('detail');
   const [table, setTable] = useState('BKPF');
   const [query, setQuery] = useState('');
@@ -40,6 +40,11 @@ export function RightPanel() {
     {tab === 'detail' && <section className="step-inspector-card" aria-label="Detail dan log perubahan langkah">
       <h2>Detail & Log Perubahan</h2>
       {activeAction && activeDetail ? <>
+        <label>Pilih langkah yang diinspeksi
+          <select value={activeAction.id} onChange={event => setSelectedStepId(event.target.value)}>
+            {caseActions.map(a => <option key={a.id} value={a.id}>Langkah {a.step}: {a.title} ({a.tcode})</option>)}
+          </select>
+        </label>
         <div className="inspector-step-header">
           <div className="eyebrow">{activeDetail.module} · LANGKAH {activeAction.step}</div>
           <h3 className="step-title">{activeAction.title}</h3>

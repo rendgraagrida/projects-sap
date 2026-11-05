@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { caseActions } from '../data/capex-case';
-import { caseStepDetails } from '../data/case-step-details';
 import { dictionaries, modules, quiz } from '../data/curriculum';
 import { accounts, taxCodes } from '../data/sap-config';
 import { simulateMigo } from '../lib/migo-engine';
@@ -178,43 +177,15 @@ export function CenterPanel() {
       <div className="step-list">{caseActions.map((action, index) => {
         const isDone = index < store.state.caseAction;
         const isCurrent = index === store.state.caseAction;
-        const isSelected = store.selectedStepId === action.id;
-        const detail = caseStepDetails[action.id];
-        return <div className={`step ${isDone ? 'done' : isCurrent ? 'current' : ''} ${isSelected ? 'selected' : ''}`} key={action.id} role="button" tabIndex={0} aria-expanded={isSelected} onClick={() => store.setSelectedStepId(isSelected ? null : action.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); store.setSelectedStepId(isSelected ? null : action.id); } }}>
+        const isSelected = store.selectedStepId ? store.selectedStepId === action.id : (store.state.caseAction > 0 ? index === store.state.caseAction - 1 : index === 0);
+        return <div className={`step ${isDone ? 'done' : isCurrent ? 'current' : ''} ${isSelected ? 'selected' : ''}`} key={action.id} role="button" tabIndex={0} aria-current={isSelected ? 'step' : undefined} onClick={() => store.setSelectedStepId(action.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); store.setSelectedStepId(action.id); } }}>
           <span className="step-num">{isDone ? '✓' : action.step}</span>
           <div className="step-content">
             <div className="step-header-line">
               <strong>{action.title}</strong>
-              <span className="step-click-prompt">{isSelected ? 'Tutup rincian ▲' : 'Klik untuk rincian ▼'}</span>
+              <span className={`step-status-tag ${isDone ? 'done' : isCurrent ? 'current' : 'pending'}`}>{isDone ? '✓ Selesai' : isCurrent ? '⏳ Langkah berikutnya' : '🔒 Menunggu'}</span>
             </div>
             <small>{action.tcode} · {action.description}</small>
-            {isSelected && detail && <div className="step-inline-detail" onClick={event => event.stopPropagation()}>
-              <div className="step-detail-badge-row">
-                <span className="step-badge module">{detail.module}</span>
-                <span className={`step-badge status ${isDone ? 'done' : isCurrent ? 'current' : 'pending'}`}>{isDone ? '✓ Sudah dieksekusi' : isCurrent ? '⏳ Langkah berikutnya' : '🔒 Menunggu'}</span>
-                <span className="step-badge sap-status">Status SAP: {detail.sapStatus}</span>
-              </div>
-              <p className="step-inline-purpose"><strong>Tujuan:</strong> {detail.businessPurpose}</p>
-              <div className="step-inline-grid">
-                <div>
-                  <strong>Input Parameter:</strong>
-                  <ul>{detail.inputData.map((d, i) => <li key={i}>{d}</li>)}</ul>
-                </div>
-                <div>
-                  <strong>Perubahan Sistem & DB:</strong>
-                  <ul>
-                    {detail.systemChanges.map((sc, i) => <li key={i}>{sc}</li>)}
-                    {detail.dbImpact.map((db, i) => <li key={i}><code>{db.table}</code>: {db.description}</li>)}
-                  </ul>
-                </div>
-              </div>
-              <div className="step-inline-fi">
-                <strong>Akuntansi (FI) & Anggaran:</strong>
-                <p>{detail.fiJournalNote}</p>
-                <p className="step-inline-avac"><em>{detail.avacNote}</em></p>
-              </div>
-              <small className="step-inline-hint">💡 Rincian lengkap dan riwayat perubahan juga tampil otomatis di tab <strong>Detail Langkah</strong> pada panel kanan Inspector Lab.</small>
-            </div>}
           </div>
         </div>;
       })}</div>
