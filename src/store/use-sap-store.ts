@@ -5,7 +5,7 @@ import { executeCaseAction, initialSapState, parseTCodeCommand } from '../lib/sa
 import { dictionaryCodes, type DictionaryEntry } from '../lib/study-engine';
 import type { Budget, Journal, SapEdition, SapState } from '../types/sap';
 
-export type View = 'reader' | 'dictionary' | 'quiz' | 'case' | 'migo' | 'miro' | 'avac' | 'settlement';
+export type View = 'reader' | 'dictionary' | 'quiz' | 'case' | 'e2e' | 'migo' | 'miro' | 'avac' | 'settlement';
 export type StudyTab = 'modules' | 'dictionary' | 'quiz';
 interface Store {
   edition: SapEdition;
