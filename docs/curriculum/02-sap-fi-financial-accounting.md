@@ -1,0 +1,243 @@
+# Modul 02: SAP FI (Financial Accounting) — Panduan Mendalam
+
+> **Tujuan Pembelajaran:**
+> 1. Menguasai anatomi dokumen akuntansi SAP (**Document Type**, **Posting Key**, dan **Special G/L Indicator**).
+> 2. Memahami operasi harian dan konfigurasi inti pada 4 pilar FI: **FI-GL** (Buku Besar), **FI-AP** (Hutang Vendor & `F110`), **FI-AR** (Piutang Pelanggan), dan **FI-AA** (Aset Tetap & *Asset under Construction*).
+> 3. Memahami mekanisme pajak (**PPN `FTXP`** & **PPh *Withholding Tax***) serta prosedur **Tutup Buku Bulanan/Tahunan (*Closing*)**.
+
+---
+
+## 1. Anatomi Dokumen Akuntansi SAP FI
+
+Prinsip utama SAP FI adalah **"No Posting Without a Document"**. Setiap transaksi keuangan (baik diinput manual di FI maupun otomatis dari pergerakan barang MM atau settlement PS) menghasilkan sebuah dokumen akuntansi unik yang diidentifikasi oleh kombinasi 3 kunci utama (**Primary Key**):
+1. **Company Code (`BUKRS`)** — misal `1000`
+2. **Document Number (`BELNR`)** — misal `1900000125`
+3. **Fiscal Year (`GJAHR`)** — misal `2026`
+
+### 1.1 Struktur Dokumen: Header vs Line Items
+
+```text
+┌────────────────────────────────────────────────────────────────────────────┐
+│ DOCUMENT HEADER (Tabel: BKPF)                                              │
+│ • Document Date (BLDAT)  : Tanggal cetak faktur fisik/bukti asli           │
+│ • Posting Date (BUDAT)   : Tanggal masuk ke buku besar (menentukan periode)│
+│ • Document Type (BLART)  : Klasifikasi transaksi (SA, KR, RE, WE, KZ, AA)  │
+│ • Currency (WAERS)       : Mata uang transaksi & kurs (Exchange Rate)      │
+│ • Reference (XBLNR)      : Nomor faktur vendor / nomor surat jalan         │
+├────────────────────────────────────────────────────────────────────────────┤
+│ LINE ITEMS (Tabel: ACDOCA di S/4HANA & BSEG) — Minimal 2 Baris (Dr = Cr)   │
+│ Baris 001: PKey [31] | Vendor 100024 (Recon 210010) | Cr. 11.100.000      │
+│ Baris 002: PKey [40] | G/L 510020 (Biaya Jasa)      | Dr. 10.000.000 | WBS │
+│ Baris 003: PKey [40] | G/L 115010 (PPN Masukan)     | Dr.  1.100.000      │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 1.2 Document Types Standar (`OBA7`)
+
+Document Type mengendalikan **Rentang Nomor Dokumen (*Number Range* `FBN1`)** dan **Jenis Akun yang diizinkan** (Asset `A`, Customer `D`, Vendor `K`, Material `M`, G/L `S`):
+
+| Doc. Type | Deskripsi Standar | Modul Asal | Transaksi Pemicu Utama |
+| :---: | :--- | :---: | :--- |
+| **`SA`** | G/L Account Document | FI-GL | `FB50`, `F-02` (Jurnal Umum Manual) |
+| **`KR`** | Vendor Invoice (Faktur Non-PO) | FI-AP | `FB60`, `F-43` (Tagihan langsung tanpa PO MM) |
+| **`KG`** | Vendor Credit Memo (Nota Kredit) | FI-AP | `FB65` (Retur/pengurangan tagihan vendor) |
+| **`RE`** | Logistics Invoice (Faktur PO) | MM-LIV | `MIRO` (Verifikasi faktur atas PO pengadaan) |
+| **`WE`** | Goods Receipt (Penerimaan Barang) | MM-IM | `MIGO` (Movement 101, 105) |
+| **`WA`** | Goods Issue (Pengeluaran Barang) | MM-IM / PS | `MIGO` (Movement 201 Cost Center, 221 Proyek WBS) |
+| **`KZ`** | Vendor Payment (Pembayaran Manual) | FI-AP | `F-53`, `F-48` (Pembayaran keluar manual) |
+| **`ZP`** | Payment Posting (Pembayaran Otomatis) | FI-AP | `F110` (*Automatic Payment Program*) |
+| **`DR`** | Customer Invoice (Faktur Penjualan FI) | FI-AR | `FB70` |
+| **`RV`** | Billing Document Transfer | SD-FI | `VF01` (Faktur penjualan dari modul Sales & Distribution) |
+| **`DZ`** | Customer Payment (Penerimaan Kas) | FI-AR | `F-28` |
+| **`AA`** | Asset Posting (Transaksi Aset Tetap) | FI-AA / PS | `F-90`, `ABZON`, `ABAVN`, `CJ88` (Settlement WBS ke Aset) |
+| **`AF`** | Depreciation Posting (Penyusutan) | FI-AA | `AFAB` (Run penyusutan bulanan) |
+
+---
+
+### 1.3 Tabel Sakti Posting Keys (`OB41`)
+
+Di SAP, sistem tidak mengenal kolom "Debet" atau "Kredit" secara langsung di database, melainkan dikendalikan oleh 2 digit **Posting Key (`BSCHL`)**:
+
+| Jenis Akun | Posting Key **DEBIT** | Posting Key **CREDIT** | Keterangan Penggunaan |
+| :--- | :---: | :---: | :--- |
+| **G/L Account (`S`)** | **`40`** | **`50`** | Jurnal buku besar umum (Kas, Bank, Biaya, Pendapatan). |
+| **Vendor / Supplier (`K`)** | **`25`** *(Outg. Payment)*<br>**`21`** *(Credit Memo)*<br>**`29`** *(Special G/L Dr)* | **`31`** *(Invoice)*<br>**`39`** *(Special G/L Cr)* | `31` saat faktur hutang masuk; `25` saat hutang dibayar lunas; `29` saat bayar DP (`F-48`). |
+| **Customer (`D`)** | **`01`** *(Invoice)*<br>**`09`** *(Special G/L Dr)* | **`15`** *(Inc. Payment)*<br>**`11`** *(Credit Memo)*<br>**`19`** *(Special G/L Cr)* | `01` saat menagih piutang pelanggan; `15` saat pelanggan membayar. |
+| **Asset (`A`)** | **`70`** | **`75`** | `70` saat penambahan nilai aset/AuC; `75` saat penghapusan/akumulasi penyusutan aset. |
+| **Material Stock (`M`)** | **`89`** *(Stock Inward)* | **`99`** *(Stock Outward)* | `89` otomatis saat barang masuk di `MIGO` (101); `99` saat barang keluar (201/221). |
+
+---
+
+### 1.4 Kontrol Periode Posting: FI (`OB52`) vs MM (`MMPV` / `OMSY`)
+
+Sering terjadi error di lapangan ketika user hendak memposting `MIGO` atau `MIRO` pada awal bulan baru. Pahami bahwa SAP memiliki **2 gerbang periode yang berbeda**:
+1. **Gerbang Periode FI (`OB52`):**
+   - Mengontrol pembukaan/penutupan periode akuntansi berdasarkan Variant dan Jenis Akun (`+` Semua, `A` Aset, `D` Customer, `K` Vendor, `M` Material, `S` GL).
+   - Memiliki 3 rentang periode: *Periode 1* (Periode berjalan normal, misal `11/2026`), *Periode 2* (Periode penyesuaian audit tahunan, misal `13-16`), dan *Periode 3* (Integrasi CO-FI).
+2. **Gerbang Periode Logistik MM (`MMPV` untuk buka periode baru, `MMRV` untuk cek periode aktif):**
+   - Modul MM hanya mengizinkan posting di **bulan berjalan** dan (jika diizinkan di `MMRV`) **1 bulan sebelumnya**.
+   - Sekalipun periode FI di `OB52` sudah dibuka untuk tahun depan, `MIGO` tetap akan ditolak jika periode MM belum digeser menggunakan T-Code **`MMPV`**.
+
+---
+
+## 2. Sub-Modul FI-GL (General Ledger Accounting)
+
+### 2.1 Transaksi Harian Buku Besar
+* **`FB50` (Enter G/L Account Document):** Layar *Enjoy Transaction* satu layar untuk menjurnal akun G/L (cukup pilih *Debit* atau *Credit*, sistem otomatis mengisi Posting Key `40`/`50`).
+* **`F-02` (General Posting):** Layar klasik yang bisa menjurnal lintas jenis akun (G/L, Vendor, Customer, Asset sekaligus) dengan mengetikkan Posting Key manual.
+* **`FV50` / `FBV0` (Park & Post Document):** Menyimpan draf jurnal sementara (*Parked Document*) oleh staf junior (belum mengubah saldo buku besar) untuk kemudian diperiksa dan di-*Post* oleh manajer akuntansi.
+* **`FB03` (Display Document):** Melihat dokumen akuntansi yang sudah terbentuk.
+* **`FB08` (Reverse Individual Document):** Membatalkan dokumen FI yang salah.*(Catatan: Dokumen FI yang berasal dari logistik `MIGO`/`MIRO` **tidak bisa** dibatalkan lewat `FB08`, melainkan harus dibatalkan dari modul asalnya: `MIGO Cancellation` atau `MR8M`!).*
+
+### 2.2 Document Splitting (Pemecahan Dokumen Otomatis)
+Di S/4HANA (dan New GL ECC), laporan Neraca sering diminta tidak hanya per Company Code, tetapi juga per **Profit Center** atau **Segment**.
+* **Contoh:** Anda membeli barang dari 1 Vendor senilai Rp 10.000.000 untuk dua proyek di Profit Center berbeda (`PC-JAKARTA` Rp 6.000.000 dan `PC-SURABAYA` Rp 4.000.000).
+* Pada tampilan input (*Entry View*), baris Hutang Vendor hanya 1 baris (Rp 10.000.000).
+* Namun pada tampilan Buku Besar (*General Ledger View* di `ACDOCA`), fitur **Active Document Splitting** otomatis memecah baris Hutang Vendor dan PPN secara proporsional (60% ke `PC-JAKARTA` dan 40% ke `PC-SURABAYA`), sehingga Neraca per Profit Center selalu seimbang (*zero-balanced*).
+
+---
+
+## 3. Sub-Modul FI-AP (Accounts Payable — Siklus Hutang Vendor)
+
+Ada dua jalur timbulnya hutang ke vendor di SAP:
+1. **Jalur Tanpa PO (FI-AP Murni):** Tagihan listrik, sewa kantor, biaya administrasi $\rightarrow$ langsung diinput di **`FB60`**.
+2. **Jalur Dengan PO (Integrasi MM-PS-FI):** Pengadaan barang/jasa proyek $\rightarrow$ melalui `ME21N` $\rightarrow$ `MIGO` $\rightarrow$ **`MIRO`**.
+
+### 3.1 Alur Uang Muka Vendor (Down Payment — Special G/L Indicator `A`)
+
+Dalam proyek konstruksi (PS) dan pengadaan mesin (MM), vendor sering meminta DP (misal 20% di muka). Jika DP dicatat ke akun Hutang reguler (`210010`), maka Neraca akan terdistorsi (hutang tampak berkurang padahal barang belum dikirim). Oleh karena itu, SAP menggunakan **Special G/L Indicator `A`** yang mengarahkan jurnal ke akun **Uang Muka Pembelian (`116010` - Aset Lancar)** via konfigurasi `OBYR`:
+
+```mermaid
+sequenceDiagram
+    participant User as Staf Keuangan / Proyek
+    participant SAP as Sistem SAP (FI-AP & PS)
+    participant GL as Buku Besar (G/L Impact)
+
+    Note over User,GL: Tahap 1: Permintaan DP (Berdasarkan PO / WBS)
+    User->>SAP: T-Code F-47 (Down Payment Request - Sp. GL 'F')
+    SAP->>GL: Noted Item (1 baris pengingat, belum membentuk jurnal Dr/Cr)
+
+    Note over User,GL: Tahap 2: Pembayaran Uang Muka (DP 20% = Rp 20 Juta)
+    User->>SAP: T-Code F-48 (atau F110) — Pilih Sp. GL Indicator 'A'
+    SAP->>GL: Dr. 116010 Uang Muka Vendor (PKey 29A) Rp 20 Jt<br/>Cr. 111020 Bank Outgoing (PKey 50) Rp 20 Jt
+
+    Note over User,GL: Tahap 3: Faktur Penuh 100% Masuk (MIRO / FB60 = Rp 100 Juta)
+    User->>SAP: T-Code MIRO / FB60
+    SAP->>GL: Dr. GR/IR atau Biaya Rp 100 Jt<br/>Cr. 210010 Hutang Usaha Vendor (PKey 31) Rp 100 Jt
+
+    Note over User,GL: Tahap 4: Kompensasi / Clearing DP terhadap Faktur
+    User->>SAP: T-Code F-54 (Clear Vendor Down Payment)
+    SAP->>GL: Dr. 210010 Hutang Usaha Vendor (PKey 26) Rp 20 Jt<br/>Cr. 116010 Uang Muka Vendor (PKey 39A) Rp 20 Jt
+
+    Note over User,GL: Tahap 5: Pelunasan Sisa Hutang (80% = Rp 80 Juta)
+    User->>SAP: T-Code F110 / F-53
+    SAP->>GL: Dr. 210010 Hutang Usaha Vendor (PKey 25) Rp 80 Jt<br/>Cr. 111020 Bank Outgoing (PKey 50) Rp 80 Jt
+```
+
+### 3.2 Automatic Payment Program — APP (`F110` & Konfigurasi `FBZP`)
+
+Untuk membayar ratusan faktur jatuh tempo sekaligus secara otomatis dan menghasilkan file transfer bank (*DMEE / Payment Medium*), perusahaan menggunakan **`F110`**.
+
+#### 6 Pilar Konfigurasi `FBZP` (Wajib Dikuasai Konsultan FI):
+1. **All Company Codes:** Mengatur toleransi hari kas diskon dan daftar Special G/L yang boleh dibayar via `F110` (misal: `A`, `F`).
+2. **Paying Company Codes:** Menentukan Company Code mana yang membayarkan dan nilai minimum pembayaran.
+3. **Payment Methods in Country:** Mendefinisikan metode bayar tingkat negara (misal: `T` Bank Transfer, `C` Cek), syarat master data (apakah wajib ada nomor rekening IBAN/Bank di BP Vendor), dan program pencetak DME.
+4. **Payment Methods in Company Code:** Menentukan batas nilai minimum/maksimum per transaksi untuk metode transfer tersebut di Company Code terkait.
+5. **Bank Determination:**
+   - *Ranking Order:* Urutan prioritas bank jika perusahaan punya banyak bank (misal: Prioritas 1 `BMRI` Bank Mandiri, Prioritas 2 `BBCA` BCA).
+   - *Bank Accounts:* Memetakan rekening bank ke **Akun G/L Bank Clearing** (misal `111029` Bank Mandiri Outgoing Clearing).
+   - *Available Amounts:* Plafon dana maksimal yang siap ditarik di rekening tersebut.
+6. **House Banks (`FI12` / Fiori *Manage Bank Accounts*):** Data master bank milik perusahaan kita sendiri (Bank Key, Nomor Rekening Koran).
+
+---
+
+## 4. Sub-Modul FI-AA (Asset Accounting — Aset Tetap & Kapitalisasi Proyek)
+
+Modul **FI-AA** sangat erat kaitannya dengan **SAP MM** (pembelian aset langsung) dan **SAP PS** (kapitalisasi proyek konstruksi menjadi aset tetap).
+
+### 4.1 Konsep Kunci Arsitektur FI-AA
+* **Chart of Depreciation (`EC08`):** Kumpulan aturan penyusutan yang berlaku di suatu negara (misal `ID01` standar PSAK & Perpajakan Indonesia).
+* **Depreciation Areas:** Buku penilaian paralel dalam satu aset yang sama:
+  - Area **`01` (Book Depreciation):** Penyusutan komersial (PSAK/IFRS) — memposting jurnal otomatis ke Buku Besar secara real-time.
+  - Area **`15` (Tax Depreciation):** Penyusutan fiskal/pajak (sesuai UU PPh Pasal 11 Kelompok 1, 2, 3, 4 Bangunan).
+  - Area **`32` (Group Currency):** Penilaian dalam mata uang grup konsolidasi (misal `USD`).
+* **Asset Class (`OAOA`):** Pengelompokan aset yang menentukan rentang nomor, masa manfaat (*Useful Life*), metode penyusutan (*Depreciation Key*, misal `LINR` Garis Lurus / *Straight-Line* atau `DG20` Saldo Menurun), serta **Account Determination (`AO90`)**.
+
+#### Contoh Kelas Aset Standar:
+| Asset Class | Deskripsi | Masa Manfaat | Penyusutan? | Keterangan Khusus |
+| :---: | :--- | :---: | :---: | :--- |
+| **`1000`** | Tanah / Land | - | ❌ Tidak | Tanah tidak disusutkan. |
+| **`2000`** | Bangunan & Gedung | 20 Tahun | ✅ Ya (5%/thn) | Menerima hasil *settlement* proyek gedung. |
+| **`3000`** | Mesin & Peralatan Pabrik | 8 - 16 Tahun | ✅ Ya | Dapat dibeli langsung via PO MM (`Acct Assgt A`) atau via proyek PS. |
+| **`4000`** | Kendaraan & Alat Berat | 4 - 8 Tahun | ✅ Ya | Wajib mengisi Nomor Polisi / VIN di master aset. |
+| **`8000`** | **Asset Under Construction (AuC)** | - | ❌ **Tidak (`0000`)** | **Jembatan Integrasi PS $\leftrightarrow$ FI-AA!** Menampung biaya proyek selama masa konstruksi. |
+
+### 4.2 Tiga Cara Perolehan Aset Tetap (Asset Acquisition)
+
+#### Cara 1: Pembelian Langsung via PO Modul MM (Account Assignment Category `A`)
+Digunakan untuk membeli aset yang langsung siap pakai (misal: beli 5 unit Laptop atau 1 unit Forklift):
+1. Buat Master Aset di **`AS01`** (misal menghasilkan nomor aset `30000045-0`).
+2. Buat PO di **`ME21N`** dengan memilih **Account Assignment Category = `A` (Asset)** dan memasukkan nomor aset `30000045-0`.
+3. Saat barang tiba dan diposting **`MIGO` (Movement 101)** (jika *Valuated GR* aktif):
+   $$\begin{aligned}
+   \text{Dr. } & \text{Aset Tetap Mesin } (30000045\text{-}0 \rightarrow \text{G/L } 121030, \text{ PKey } 70) \\
+   \text{Cr. } & \text{GR/IR Clearing Account } (\text{G/L } 210090, \text{ PKey } 50)
+   \end{aligned}$$
+   Sejak tanggal MIGO tersebut, status aset langsung **Capitalized (Aktif)** dan siap disusutkan akhir bulan!
+
+#### Cara 2: Pembelian Langsung via FI-AP Tanpa PO (`F-90`)
+$$\begin{aligned}
+\text{Dr. } & \text{Aset Tetap } (\text{PKey } 70, \text{ Transaction Type } 100) \\
+\text{Dr. } & \text{PPN Masukan } (\text{PKey } 40) \\
+\text{Cr. } & \text{Vendor / Hutang Usaha } (\text{PKey } 31)
+\end{aligned}$$
+
+#### Cara 3: Kapitalisasi Bertahap dari Proyek SAP PS (`CJ88` $\rightarrow$ `AIAB` $\rightarrow$ `AIBU`)
+Digunakan untuk proyek pembangunan jangka panjang (misal: membangun pabrik selama 6 bulan). Selama bulan 1 s/d 5, biaya dikumpulkan di WBS PS dan di-*settle* tiap akhir bulan ke **AuC (Asset Under Construction)**. Setelah pabrik rampung 100% di bulan ke-6, nilai AuC dipindahkan ke Aset Tetap Gedung & Mesin final. *(Akan dibahas tuntas dengan angka di Modul 04 & Modul 05).*
+
+---
+
+## 5. Perpajakan di SAP FI: PPN (`FTXP`) & PPh (*Withholding Tax*)
+
+Dalam transaksi pengadaan di Indonesia (maupun global), faktur vendor hampir selalu melibatkan **PPN (Pajak Pertambahan Nilai)** dan **PPh Potong/Pungut (Pasal 23 / Pasal 4 ayat 2 / Pasal 21)**.
+
+### 5.1 Mekanisme Tax Code PPN (`FTXP` & `OB40`)
+* Contoh Tax Code di Indonesia:
+  - **`V0`**: PPN Masukan 0% (Non-BKP / Bebas Pajak)
+  - **`V1`**: PPN Masukan 11% (atau 12% sesuai tarif berlaku) — Dapat Dikreditkan (*Deductible* $\rightarrow$ masuk ke akun Aset Pajak `115010` PPN Masukan).
+  - **`V2`**: PPN Masukan Tidak Dapat Dikreditkan (*Non-Deductible* — key `NVV` $\rightarrow$ nilai pajak otomatis ditambahkan ke nilai stok material atau biaya proyek WBS!).
+  - **`A1`**: PPN Keluaran 11% (Penjualan ke pelanggan $\rightarrow$ masuk ke akun Hutang Pajak `213010` PPN Keluaran).
+
+### 5.2 Extended Withholding Tax (PPh Potong/Pungut)
+Ketika membayar jasa konstruksi atau jasa konsultan (misal Tagihan Jasa = Rp 100.000.000, PPN 11% = Rp 11.000.000, dipotong PPh 23 sebesar 2% = Rp 2.000.000):
+
+```text
+Jurnal Saat Verifikasi Faktur Jasa (MIRO / FB60):
+----------------------------------------------------------------------
+Dr. 510020 Beban Jasa / GR-IR Jasa       Rp 100.000.000
+Dr. 115010 PPN Masukan (11%)             Rp  11.000.000
+    Cr. 210010 Hutang Vendor (PT Konsultan)             Rp 109.000.000
+    Cr. 213023 Hutang PPh Pasal 23 (2%)                 Rp   2.000.000
+----------------------------------------------------------------------
+Total Debit: Rp 111.000.000              Total Kredit:  Rp 111.000.000
+```
+Lihat bagaimana hutang bersih yang siap dibayar ke rekening vendor melalui `F110` otomatis tinggal **Rp 109.000.000**, sedangkan Rp 2.000.000 masuk ke akun Hutang Pajak PPh 23 untuk disetorkan ke negara!
+
+---
+
+## 6. Checklist Tutup Buku Bulanan & Tahunan (FI Period-End Closing)
+
+Urutan eksekusi *Month-End Closing* yang benar antara MM, PS, dan FI:
+
+1. **Pastikan seluruh transaksi fisik logistik selesai:** Semua barang masuk/keluar bulan tersebut sudah diposting di `MIGO` dan faktur di `MIRO`.
+2. **Buka periode MM bulan baru (`MMPV`)** dan kunci periode lama.
+3. **Rekonsiliasi & Clearing GR/IR (`F.13`):** Memasangkan secara otomatis item `MIGO` (Kredit GR/IR) dan `MIRO` (Debet GR/IR) yang nilainya sudah cocok sehingga saldo akun GR/IR hanya menyisakan barang yang belum ditagih atau tagihan yang barangnya belum datang.
+4. **Settlement Proyek PS (`CJ88`):** Mengalokasikan biaya WBS bulan berjalan ke AuC atau Cost Center.
+5. **Jalankan Penyusutan Aset Tetap (`AFAB`):** Menghitung dan memposting beban depresiasi seluruh aset aktif.
+6. **Penilaian Kurs Mata Uang Asing (`FAGL_FCV`):** Menyesuaikan nilai saldo Kas/Bank/Hutang/Piutang bermata uang asing (`USD`/`EUR`) ke kurs tengah BI akhir bulan (*Unrealized Gain/Loss on Forex*).
+7. **Tutup Periode Posting FI (`OB52`):** Mengunci bulan yang sudah selesai diaudit agar tidak ada jurnal susulan yang mengubah angka laporan.
+8. **Cetak Laporan Keuangan (`F.01` / Fiori * Financial Statement*):** Menarik laporan Neraca (*Balance Sheet*) dan Laba Rugi (*Income Statement*).
+
+---
+
+> **Selanjutnya:** Lanjut ke **[Modul 03: SAP MM (Materials Management)](./03-sap-mm-materials-management.md)** untuk membedah siklus Procure-to-Pay, pergerakan stok gudang, dan rumus sakti konfigurasi otomatis **`OBYC`**.
