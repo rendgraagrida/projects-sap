@@ -23,7 +23,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #16
 .app:has(.command-notice) .shell{height:calc(100vh - 145px)}
 .center p{line-height:1.7}
 .center a{color:#087ab7;text-decoration:underline;text-underline-offset:2px}
-.markdown{overflow-wrap:anywhere}
+.markdown{overflow-wrap:break-word}
 .markdown h4,.markdown h5,.markdown h6{margin-top:20px;font-size:15px;font-weight:700}
 .markdown ul,.markdown ol{padding-left:24px;margin:10px 0}
 .markdown li{margin:5px 0}
@@ -33,6 +33,20 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #16
 .field-action{display:flex;align-items:flex-end}
 .quiz-option.selected{border-color:#168ac3;background:#e9f5fc;color:#17334e;opacity:1}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:18px 0;border:1px solid #dce6ef;border-radius:8px;background:#ffffff;max-width:100%;box-shadow:0 1px 3px rgba(16,44,71,0.04);scrollbar-width:thin;scrollbar-color:#a0c4de #f1f6fa}
+.table-wrap::-webkit-scrollbar{height:8px}
+.table-wrap::-webkit-scrollbar-track{background:#f1f6fa;border-radius:4px}
+.table-wrap::-webkit-scrollbar-thumb{background:#a0c4de;border-radius:4px}
+.table-wrap::-webkit-scrollbar-thumb:hover{background:#6ea4cc}
+.markdown table,table{border-collapse:collapse;width:max-content;min-width:100%;font-size:13px;line-height:1.55}
+.markdown table th,.markdown table td,table th,table td{padding:10px 14px;text-align:left;border-bottom:1px solid #e4ebf2;vertical-align:top;overflow-wrap:normal;word-break:normal;white-space:normal}
+.markdown table th,table th{background:#f4f8fb;color:#314a63;font-weight:700;white-space:nowrap;letter-spacing:0.01em}
+code,td code,th code{white-space:nowrap !important;word-break:keep-all !important;overflow-wrap:normal !important;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace !important;padding:2px 6px;background:#eef5fb;color:#0b5989;border-radius:4px;border:1px solid #d3e5f3;font-size:12px;font-weight:600;display:inline-block;margin:1px 0}
+.markdown table td:first-child,.markdown table th:first-child{white-space:nowrap !important;font-weight:700;color:#173451}
+.markdown table td:last-child,.markdown table th:last-child{white-space:nowrap !important}
+.markdown table td{max-width:460px}
+.right .table-wrap table{width:max-content;min-width:100%}
+.right .table-wrap th,.right .table-wrap td{white-space:nowrap !important}
 .reader-heading{gap:12px;margin-bottom:14px}
 .reader-heading button{letter-spacing:normal}
 .step{cursor:pointer;user-select:none;transition:border-color .15s ease,box-shadow .15s ease,background .15s ease}
