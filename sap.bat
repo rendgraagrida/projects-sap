@@ -15,13 +15,13 @@ if not exist "node_modules" (
 
 echo [2/2] Menyalakan server Vite dan membuka browser...
 echo.
-echo Dashboard Web: http://127.0.0.1:5173/
+echo Dashboard Web: http://localhost:5173/ atau http://127.0.0.1:5173/
 echo Tips: Tekan Ctrl+C untuk menghentikan server.
 echo ======================================================================
 echo.
 
 :: Membuka browser otomatis setelah 2 detik
-start "" powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Sleep -Seconds 2; Start-Process 'http://127.0.0.1:5173/'"
+start "" powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Sleep -Seconds 2; Start-Process 'http://localhost:5173/'"
 
 :: Menjalankan Vite dev server
 call bun run dev
