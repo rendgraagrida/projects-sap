@@ -8,6 +8,7 @@ import { useSapStore } from '../store/use-sap-store';
 
 export function RightPanel() {
   const { state, edition, view, sandboxJournal, avacBudget, selectedStepId, setSelectedStepId } = useSapStore();
+  const previewMode = ['migo', 'miro', 'settlement'].includes(view);
   const [tab, setTab] = useState<'detail' | 'journal' | 'budget' | 'tables'>('detail');
   const [table, setTable] = useState('BKPF');
   const [query, setQuery] = useState('');
@@ -15,15 +16,15 @@ export function RightPanel() {
   useEffect(() => {
     setSelectedDocId('');
     if (view === 'avac') setTab('budget');
-    else if (sandboxJournal) setTab('journal');
-    else if (selectedStepId) setTab('detail');
-  }, [view, sandboxJournal, selectedStepId, state.caseAction]);
-  const activeAction = caseActions.find(a => a.id === selectedStepId) ?? caseActions[Math.max(0, Math.min(caseActions.length - 1, state.caseAction > 0 ? state.caseAction - 1 : 0))];
+    else if (sandboxJournal || previewMode) setTab('journal');
+    else if (view === 'case') setTab('detail');
+    else setTab('detail');
+  }, [view, sandboxJournal, previewMode, state.caseAction]);
+  const activeAction = view === 'case' ? caseActions.find(a => a.id === selectedStepId) ?? caseActions[Math.max(0, Math.min(caseActions.length - 1, state.caseAction > 0 ? state.caseAction - 1 : 0))] : undefined;
   const activeDetail = activeAction ? caseStepDetails[activeAction.id] : undefined;
   const activeIndex = activeAction ? caseActions.findIndex(a => a.id === activeAction.id) : 0;
   const stepIsDone = activeIndex < state.caseAction;
   const stepIsCurrent = activeIndex === state.caseAction;
-  const previewMode = ['migo', 'miro', 'settlement'].includes(view);
   const defaultJournal = sandboxJournal ?? (previewMode ? undefined : state.journals[state.journals.length - 1]);
   const journal = selectedDocId ? selectedDocId === 'SANDBOX' ? sandboxJournal : state.journals.find(item => item.id === selectedDocId) : defaultJournal;
   const debit = journal?.lines.filter(line => line.side === 'DEBIT').reduce((sum, line) => sum + line.amount, 0n) ?? 0n;
@@ -82,22 +83,22 @@ export function RightPanel() {
           <p className="avac-note-text">{activeDetail.avacNote}</p>
           <button type="button" className="link-button" onClick={() => setTab('budget')}>Lihat pergerakan anggaran di tab PS Budget →</button>
         </div>
-      </> : <p>Pilih salah satu langkah simulasi di panel tengah untuk melihat detail perubahannya.</p>}
+      </> : <p>{view === 'case' ? 'Pilih salah satu langkah Simulation di panel tengah untuk melihat detail perubahannya.' : 'Detail langkah tampil saat tab Simulation aktif.'}</p>}
     </section>}
     {tab === 'journal' && <>
       <h2>Jurnal akuntansi</h2>
       {(state.journals.length > 0 || sandboxJournal) && <label>Dokumen sumber<select value={journal?.id ?? ''} onChange={event => setSelectedDocId(event.target.value)}>
         {!journal && <option value="" disabled>Pilih riwayat kasus atau buat pratinjau</option>}
         {sandboxJournal && <option value="SANDBOX">Pratinjau aktif · {sandboxJournal.tcode}</option>}
-        {state.journals.map(item => <option key={item.id} value={item.id}>Kasus · {item.id} · {item.tcode}</option>)}
+        {state.journals.map(item => <option key={item.id} value={item.id}>Simulation · {item.id} · {item.tcode}</option>)}
       </select></label>}
       {journal ? <>
-        <div className="journal-head"><b>{journal.tcode}</b><span>{journal.id === 'SANDBOX' ? 'Pratinjau, tidak diposting ke kasus' : `Kasus CAPEX · ${journal.id}`} · {journal.type}</span><small>{journal.description}</small></div>
+        <div className="journal-head"><b>{journal.tcode}</b><span>{journal.id === 'SANDBOX' ? 'Pratinjau, tidak diposting ke Simulation' : `Simulation · ${journal.id}`} · {journal.type}</span><small>{journal.description}</small></div>
         {journal.lines.length ? <><div className="table-wrap"><table><caption className="sr-only">Jurnal debit dan kredit {journal.tcode}</caption><thead><tr><th>Akun / PK</th><th>Debit</th><th>Kredit</th></tr></thead><tbody>{journal.lines.map((line, index) => <tr key={index}><td><b>{line.account}</b> / {line.postingKey}<small>{line.label}{line.obyc ? ` · ${line.obyc}` : ''}{line.specialGl ? ` · Special G/L ${line.specialGl}` : ''}{line.wbs ? ` · ${line.wbs}` : ''}{line.costCenter ? ` · CC ${line.costCenter}` : ''}{line.order ? ` · Order ${line.order}` : ''}{line.network ? ` · Network ${line.network}` : ''}</small></td><td>{line.side === 'DEBIT' ? formatMoney(line.amount) : '—'}</td><td>{line.side === 'CREDIT' ? formatMoney(line.amount) : '—'}</td></tr>)}</tbody><tfoot><tr><th>Total</th><td>{formatMoney(debit)}</td><td>{formatMoney(credit)}</td></tr></tfoot></table></div><p role="status" className={debit === credit ? 'balance' : 'notice error'}>{debit === credit ? 'Debit = Kredit · seimbang' : 'Jurnal tidak seimbang'}</p></> : <p role="status">Tidak ada jurnal FI untuk pratinjau ini.</p>}
-      </> : <p>{previewMode ? 'Belum ada hasil pratinjau aktif. Isi form dan jalankan perhitungannya; riwayat kasus tetap dapat dipilih.' : 'Jalankan aksi kasus CAPEX untuk melihat jurnalnya.'}</p>}
+      </> : <p>{previewMode ? 'Belum ada hasil pratinjau aktif. Isi form dan jalankan perhitungannya; riwayat Simulation tetap dapat dipilih.' : 'Jalankan aksi Simulation untuk melihat jurnalnya.'}</p>}
     </>}
     {tab === 'budget' && <>
-      <h2>{view === 'avac' ? 'Budget sandbox AVAC' : 'Budget kasus CAPEX'}</h2><p>Nilai agregat fixture; reservasi Q adalah kebijakan lab, bukan saldo COOI SAP.</p>
+      <h2>{view === 'avac' ? 'Budget sandbox AVAC' : 'Budget Simulation'}</h2><p>Nilai agregat fixture; reservasi Q adalah kebijakan lab, bukan saldo COOI SAP.</p>
       {(budgets.length > 1 ? [...budgets, total] : budgets).map(budget => {
         const result = calculateAvac(budget);
         return <div className="budget-card" key={budget.id}><strong>{budget.label}</strong><small>{budget.id} · {result.status}</small><div className="progress"><span style={{ width: `${Math.max(0, Math.min(100, result.percent))}%` }} /></div>{Object.entries({ 'Released budget': budget.released, 'PR commitment': budget.pr, 'Open PO commitment': budget.po, 'Reservasi Q (lab)': budget.heldQ, Actual: budget.actual, Assigned: result.assigned, Available: result.available }).map(([label, value]) => <div className="budget-row" key={label}><span>{label}</span><b>{formatMoney(value)}</b></div>)}</div>;

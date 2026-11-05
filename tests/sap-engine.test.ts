@@ -555,6 +555,8 @@ describe('SAP Database Table Projections (S/4HANA vs ECC 6.0)', () => {
     // MATDOC exists in S/4HANA
     expect(s4Tables.MATDOC).toBeDefined();
     expect(s4Tables.MATDOC.length).toBeGreaterThan(0);
+    expect(s4Tables.MSPR?.[0]?.MATNR).toBe('MAT-FO-48C');
+    expect(s4Tables.MARD?.[0]?.MATNR).toBe('MAT-ODF-01');
 
     // ECC tables must NOT be present in S/4HANA projection
     expect(s4Tables.MKPF).toBeUndefined();

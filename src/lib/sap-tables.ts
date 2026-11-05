@@ -18,7 +18,7 @@ export function projectSapTables(state: SapState, edition: SapEdition): Record<s
     COOI: state.budgets.flatMap((b, idx) => [...(b.pr ? [{ OBJNR: `PR0000010${idx + 1}`, POSID: b.id, TYPE: 'PR', VALUE: formatMoney(b.pr) }] : []), ...(b.po ? [{ OBJNR: `PR0000010${idx + 1}`, POSID: b.id, TYPE: 'PO', VALUE: formatMoney(b.po) }] : [])]),
     ANLA: state.assets.map(a => ({ ANLN1: a.id, ANLKL: a.assetClass })),
     ANLC: state.assets.map(a => ({ ANLN1: a.id, APC: formatMoney(a.value), DEPRECIATION: formatMoney(a.depreciation) })),
-    MSPR: state.caseAction >= 7 ? [{ MATNR: 'MAT-TRAFO-150', VALUE: formatMoney(state.stockQ) }] : [], MARD: [{ MATNR: 'MAT-KABEL-01', VALUE: formatMoney(state.stockGeneral) }],
+    MSPR: state.caseAction >= 7 ? [{ MATNR: 'MAT-FO-48C', VALUE: formatMoney(state.stockQ) }] : [], MARD: [{ MATNR: 'MAT-ODF-01', VALUE: formatMoney(state.stockGeneral) }],
   };
   if (edition === 'S4') {
     tables.ACDOCA = state.journals.flatMap(j => j.lines.map((l, i) => ({ BELNR: j.id, DOCLN: String(i + 1).padStart(6, '0'), RACCT: l.account, HSL: (l.side === 'DEBIT' ? '' : '-') + formatMoney(l.amount), WBS: l.wbs ?? '' })));

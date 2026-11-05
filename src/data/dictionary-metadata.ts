@@ -460,12 +460,12 @@ export const dictionaryMetadata: Record<string, DictionaryMetaItem> = {
   },
   'PROJ': {
     explanation:
-      'Tabel Project Definition (Master Proyek SAP PS):\n• Key Field: PSPNR (Nomor Internal Proyek).\n• Menyimpan kode eksternal proyek (PSPID, contoh: P-2026-GI01), deskripsi proyek, Project Profile, Company Code, Controlling Area, Plant, dan jadwal proyek.',
+      'Tabel Project Definition (Master Proyek SAP PS):\n• Key Field: PSPNR (Nomor Internal Proyek).\n• Menyimpan kode eksternal proyek (PSPID, contoh: TINF-2026-01), deskripsi proyek, Project Profile, Company Code, Controlling Area, Plant, dan jadwal proyek.',
     moduleId: '06',
   },
   'PRPS': {
     explanation:
-      'Tabel WBS Element Master Data:\n• Key Field: PSPNR (Nomor Internal WBS).\n• Menyimpan kode eksternal WBS (POSID, contoh: P-2026-GI01.01), hirarki level pohon proyek, dan indikator operasional: Account Assignment Element (BELKZ), Planning Element, dan Billing Element.',
+      'Tabel WBS Element Master Data:\n• Key Field: PSPNR (Nomor Internal WBS).\n• Menyimpan kode eksternal WBS (POSID, contoh: P-2026-TINF01.01), hirarki level pohon proyek, dan indikator operasional: Account Assignment Element (BELKZ), Planning Element, dan Billing Element.',
     moduleId: '06',
   },
   'BPGE': {
@@ -558,7 +558,7 @@ export const dictionaryMetadata: Record<string, DictionaryMetaItem> = {
       'Pesan contoh F5 201 menunjukkan periode FI yang diperiksa tidak terbuka. Periksa posting date, fiscal year variant, posting period variant dan rentang untuk semua account type yang relevan. Perubahan OB52 hanya dilakukan oleh pihak berwenang sesuai prosedur closing; jangan membuka periode secara otomatis.',
     moduleId: '06',
   },
-  'BP 604: In document item 00010 WBS Element P-2026-GI01.02, budget for WBS was exceeded by 4,000.00 USD': {
+  'BP 604: In document item 00010 WBS Element P-2026-TINF01.02, budget for WBS was exceeded by 4,000.00 USD': {
     explanation:
       'Pesan contoh BP 604 mengindikasikan budget terlampaui pada objek yang diperiksa. Periksa nilai assigned, budget yang relevan, activation dan toleransi AVAC serta dokumen penyebab. Jika sah dan disetujui, sesuaikan budget atau transaksi; ambang dan tindakan tidak selalu 100% atau sama di setiap sistem.',
     moduleId: '06',

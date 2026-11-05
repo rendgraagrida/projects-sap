@@ -23,7 +23,7 @@ function MigoLab() {
   return <>
     <div className="eyebrow">MATERIALS MANAGEMENT · PRATINJAU NILAI</div>
     <h1>MIGO & OBYC</h1>
-    <p>Pratinjau jurnal untuk nilai yang dimasukkan. Tidak mengelola kuantitas, PO, penerimaan sebelumnya, atau mengubah stok kasus CAPEX. Akun dan movement adalah fixture lab; tidak menggantikan konfigurasi SAP.</p>
+    <p>Pratinjau jurnal untuk nilai yang dimasukkan. Tidak mengelola kuantitas, PO, penerimaan sebelumnya, atau mengubah stok kasus Simulation. Akun dan movement adalah fixture lab; tidak menggantikan konfigurasi SAP.</p>
     <form onSubmit={event => {
       event.preventDefault();
       const value = parseMoney(amount);
@@ -117,8 +117,8 @@ function SettlementLab() {
       </div>
       <button type="submit" className="primary">Hitung jurnal settlement</button>
     </form>
-    <h2>Aset sumber pratinjau AFAB: kasus CAPEX</h2>
-    {!store.state.assets.length && <p>Belum ada aset. Jalankan kasus CAPEX sampai kapitalisasi untuk mempelajari penyusutan.</p>}
+    <h2>Aset sumber pratinjau AFAB: Simulation</h2>
+    {!store.state.assets.length && <p>Belum ada aset. Jalankan Simulation sampai kapitalisasi untuk mempelajari penyusutan.</p>}
     <div className="mapping">{store.state.assets.map(asset => <div key={asset.id}><b>{asset.id} · Kelas {asset.assetClass}</b><span>{formatMoney(asset.value)} · Akumulasi {formatMoney(asset.depreciation)}</span></div>)}</div>
     <button type="button" disabled={!finalAssets.length} onClick={() => {
       const result = calculateDepreciation(store.state.assets);
