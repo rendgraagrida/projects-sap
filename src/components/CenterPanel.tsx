@@ -1,32 +1,227 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { caseActions } from '../data/capex-case';
-import { modules } from '../data/curriculum';
+import { caseStepDetails } from '../data/case-step-details';
+import { dictionaries, modules, quiz } from '../data/curriculum';
 import { accounts, taxCodes } from '../data/sap-config';
 import { simulateMigo } from '../lib/migo-engine';
 import { calculateDepreciation, settleProject } from '../lib/project-engine';
 import { simulateMiro } from '../lib/sap-engine';
 import { formatMoney, parseMoney } from '../lib/sap-money';
+import { evaluateQuiz } from '../lib/study-engine';
 import { useSapStore } from '../store/use-sap-store';
 import type { PriceControl } from '../types/sap';
 import { AvacSandbox } from './AvacSandbox';
 import { MarkdownReader } from './MarkdownReader';
 
+function MigoLab() {
+  const store = useSapStore();
+  const [movement, setMovement] = useState('101');
+  const [amount, setAmount] = useState('50000');
+  const [projectStock, setProjectStock] = useState(false);
+  const [wbs, setWbs] = useState('P-2026-TINF01.02');
+  const [assignment, setAssignment] = useState('');
+  const [feedback, setFeedback] = useState({ text: '', error: false });
+  return <>
+    <div className="eyebrow">MATERIALS MANAGEMENT · PRATINJAU NILAI</div>
+    <h1>MIGO & OBYC</h1>
+    <p>Pratinjau jurnal untuk nilai yang dimasukkan. Tidak mengelola kuantitas, PO, penerimaan sebelumnya, atau mengubah stok kasus CAPEX. Akun dan movement adalah fixture lab; tidak menggantikan konfigurasi SAP.</p>
+    <form onSubmit={event => {
+      event.preventDefault();
+      const value = parseMoney(amount);
+      if (!value.ok) { store.setSandboxJournal(null); setFeedback({ text: value.error, error: true }); return; }
+      const result = simulateMigo({ movement, amount: value.value, projectStock, wbs, costCenter: movement === '201' ? assignment : undefined, order: movement === '261' ? assignment : undefined, network: movement === '281' ? assignment : undefined });
+      store.setSandboxJournal(result.ok ? result.value : null);
+      setFeedback({ text: result.ok ? result.value.description : result.error, error: !result.ok });
+    }}>
+      <div className="form-grid">
+        <label>Movement type<select value={movement} onChange={event => { setMovement(event.target.value); setAssignment(''); setFeedback({ text: '', error: false }); store.setSandboxJournal(null); }}>{['101','103','105','122','201','221','261','281','301','311','411','412','551','561','701','702'].map(code => <option key={code}>{code}</option>)}</select></label>
+        <label>Nilai pergerakan USD<input inputMode="decimal" value={amount} onChange={event => setAmount(event.target.value)} /></label>
+        <label>WBS<input value={wbs} onChange={event => setWbs(event.target.value)} /></label>
+        <label className="check"><input type="checkbox" checked={projectStock} onChange={event => setProjectStock(event.target.checked)} /> Stok khusus proyek Q</label>
+        {['201','261','281'].includes(movement) && <label>{movement === '201' ? 'Cost center' : movement === '261' ? 'Order produksi' : 'Network'}<input value={assignment} onChange={event => setAssignment(event.target.value)} /></label>}
+      </div>
+      <button type="submit" className="primary">Hitung jurnal pergerakan</button>
+    </form>
+    {feedback.text && <div role={feedback.error ? 'alert' : 'status'} className={`notice ${feedback.error ? 'error' : ''}`}>{feedback.text}</div>}
+    <h2>Mapping akun OBYC khusus lab</h2>
+    <div className="mapping">{Object.entries(accounts).map(([key, value]) => <div key={key}><b>{key}</b><span>{value}</span></div>)}</div>
+  </>;
+}
+
+function MiroLab() {
+  const store = useSapStore();
+  const [gr, setGr] = useState('50000');
+  const [invoice, setInvoice] = useState('50000');
+  const [fx, setFx] = useState('0');
+  const [fxSide, setFxSide] = useState('loss');
+  const [control, setControl] = useState<PriceControl>('V');
+  const [coverage, setCoverage] = useState('100');
+  const [tax, setTax] = useState<keyof typeof taxCodes>('V1');
+  const [withholding, setWithholding] = useState(false);
+  const [feedback, setFeedback] = useState({ text: '', error: false });
+  return <>
+    <div className="eyebrow">LOGISTICS INVOICE VERIFICATION · PRATINJAU JURNAL</div>
+    <h1>MIRO · nilai dan selisih</h1>
+    <p>Model nilai USD dengan kuantitas yang dianggap cocok. Tidak menjalankan pencocokan PO–GR–invoice, pemeriksaan invoice duplikat, atau payment blocking SAP. Stock coverage dan selisih kurs diinput untuk mempelajari jurnal; tarif pajak adalah fixture, bukan tarif hukum terkini.</p>
+    <form onSubmit={event => {
+      event.preventDefault();
+      const a = parseMoney(gr), b = parseMoney(invoice), c = parseMoney(fx);
+      if (!a.ok || !b.ok || !c.ok || !coverage.trim()) {
+        store.setSandboxJournal(null);
+        setFeedback({ text: 'Isi nilai nonnegatif dengan maksimal dua desimal dan stock coverage 0–100%.', error: true });
+        return;
+      }
+      const result = simulateMiro({ grValue: a.value, invoiceValue: b.value, fxDifference: fxSide === 'gain' ? -c.value : c.value, priceControl: control, stockCoveragePercent: Number(coverage), taxCode: tax, withholding });
+      store.setSandboxJournal(result.ok ? result.value : null);
+      setFeedback({ text: result.ok ? result.value.description : result.error, error: !result.ok });
+    }}>
+      <div className="form-grid">
+        <label>Nilai GR historis USD<input inputMode="decimal" value={gr} onChange={event => setGr(event.target.value)} /></label>
+        <label>Nilai invoice sebelum selisih kurs USD<input inputMode="decimal" value={invoice} onChange={event => setInvoice(event.target.value)} /></label>
+        <label>Besar selisih kurs USD<input inputMode="decimal" value={fx} onChange={event => setFx(event.target.value)} /></label>
+        <label>Arah selisih kurs<select value={fxSide} onChange={event => setFxSide(event.target.value)}><option value="loss">Rugi / utang bertambah</option><option value="gain">Laba / utang berkurang</option></select></label>
+        <label>Price control<select value={control} onChange={event => setControl(event.target.value as PriceControl)}><option value="V">V · Moving Average Price</option><option value="S">S · Standard Price</option></select></label>
+        <label>Stock coverage (%)<input inputMode="numeric" value={coverage} onChange={event => setCoverage(event.target.value)} /></label>
+        <label>Tax code fixture<select value={tax} onChange={event => setTax(event.target.value as keyof typeof taxCodes)}>{Object.entries(taxCodes).filter(([, value]) => value.kind === 'INPUT').map(([code, value]) => <option key={code} value={code}>{code} · {value.rate}% · {value.deductible ? 'deductible' : 'non-deductible'}</option>)}</select></label>
+        <label className="check"><input type="checkbox" checked={withholding} onChange={event => setWithholding(event.target.checked)} /> Withholding 2% (asumsi fixture saat invoice)</label>
+      </div>
+      <button type="submit" className="primary">Hitung jurnal invoice</button>
+    </form>
+    {feedback.text && <div role={feedback.error ? 'alert' : 'status'} className={`notice ${feedback.error ? 'error' : ''}`}>{feedback.text}</div>}
+  </>;
+}
+
+function SettlementLab() {
+  const store = useSapStore();
+  const [amount, setAmount] = useState('50000');
+  const [wbs, setWbs] = useState('P-2026-TINF01.02');
+  const [assetClass, setAssetClass] = useState<'2000' | '3000'>('3000');
+  const [mode, setMode] = useState<'PERIODIC' | 'FULL'>('PERIODIC');
+  const [feedback, setFeedback] = useState({ text: '', error: false });
+  const finalAssets = store.state.assets.filter(asset => asset.assetClass !== '8000' && asset.value > asset.depreciation);
+  return <>
+    <div className="eyebrow">ASSET ACCOUNTING · PRATINJAU</div><h1>CJ88 & AFAB</h1>
+    <p>Contoh jurnal settlement untuk nilai dan WBS yang dimasukkan. Tidak mem-posting ulang kasus, tidak memvalidasi settlement rule atau saldo sender SAP. Kelas aset 8000/2000/3000 adalah konfigurasi contoh. Penyusutan mengikuti masa manfaat dan periode yang telah diposting pada aset kasus.</p>
+    <form onSubmit={event => {
+      event.preventDefault();
+      const value = parseMoney(amount);
+      if (!value.ok) { store.setSandboxJournal(null); setFeedback({ text: value.error, error: true }); return; }
+      const result = settleProject(value.value, mode, assetClass, wbs);
+      store.setSandboxJournal(result.ok ? result.value : null);
+      setFeedback({ text: result.ok ? result.value.description : result.error, error: !result.ok });
+    }}>
+      <div className="form-grid">
+        <label>Nilai settlement USD<input inputMode="decimal" value={amount} onChange={event => setAmount(event.target.value)} /></label>
+        <label>WBS sender<input value={wbs} onChange={event => setWbs(event.target.value)} /></label>
+        <label>Jenis settlement<select value={mode} onChange={event => setMode(event.target.value as 'PERIODIC' | 'FULL')}><option value="PERIODIC">Periodic · WBS ke AuC</option><option value="FULL">Full · AuC ke aset final</option></select></label>
+        {mode === 'FULL' && <label>Kelas aset final contoh<select value={assetClass} onChange={event => setAssetClass(event.target.value as '2000' | '3000')}><option value="2000">2000 · Bangunan</option><option value="3000">3000 · Mesin</option></select></label>}
+      </div>
+      <button type="submit" className="primary">Hitung jurnal settlement</button>
+    </form>
+    <h2>Aset sumber pratinjau AFAB: kasus CAPEX</h2>
+    {!store.state.assets.length && <p>Belum ada aset. Jalankan kasus CAPEX sampai kapitalisasi untuk mempelajari penyusutan.</p>}
+    <div className="mapping">{store.state.assets.map(asset => <div key={asset.id}><b>{asset.id} · Kelas {asset.assetClass}</b><span>{formatMoney(asset.value)} · Akumulasi {formatMoney(asset.depreciation)}</span></div>)}</div>
+    <button type="button" disabled={!finalAssets.length} onClick={() => {
+      const result = calculateDepreciation(store.state.assets);
+      store.setSandboxJournal(result.ok ? result.value : null);
+      setFeedback({ text: result.ok ? 'Pratinjau periode berikutnya; nilai aset kasus tidak diubah.' : result.error, error: !result.ok });
+    }}>Pratinjau penyusutan periode berikutnya</button>
+    {feedback.text && <div role={feedback.error ? 'alert' : 'status'} className={`notice ${feedback.error ? 'error' : ''}`}>{feedback.text}</div>}
+  </>;
+}
+
 export function CenterPanel() {
   const store = useSapStore();
-  const [movement, setMovement] = useState('101'); const [amount, setAmount] = useState('50000'); const [projectStock, setProjectStock] = useState(false); const [wbs, setWbs] = useState('P-2026-GI01.02');
-  const [gr, setGr] = useState('50000'); const [invoice, setInvoice] = useState('50000'); const [fx, setFx] = useState('0'); const [control, setControl] = useState<PriceControl>('V'); const [coverage, setCoverage] = useState('100'); const [tax, setTax] = useState<keyof typeof taxCodes>('V1'); const [withholding, setWithholding] = useState(false); const [message, setMessage] = useState('');
-  const module = modules.find(m => m.id === store.moduleId) ?? modules[0];
-  const executeMigo = () => { const value = parseMoney(amount); if (!value.ok) { setMessage(value.error); return; } const result = simulateMigo({ movement, amount: value.value, projectStock, wbs }); if (!result.ok) { setMessage(result.error); return; } store.setSandboxJournal(result.value); setMessage(result.value.description); };
-  const executeMiro = () => { if (!coverage.trim()) { setMessage('Stock coverage (%) wajib diisi.'); return; } const a = parseMoney(gr), b = parseMoney(invoice), c = parseMoney(fx); if (!a.ok || !b.ok || !c.ok) { setMessage('Masukkan angka nonnegatif dengan maksimal dua desimal.'); return; } const result = simulateMiro({ grValue: a.value, invoiceValue: b.value, fxDifference: c.value, priceControl: control, stockCoveragePercent: Number(coverage), taxCode: tax, withholding }); if (!result.ok) { setMessage(result.error); return; } store.setSandboxJournal(result.value); setMessage(result.value.description); };
-  const executeSettlement = (mode: 'PERIODIC' | 'FULL') => { const value = parseMoney(amount); if (!value.ok) { setMessage(value.error); return; } const result = settleProject(value.value, mode, '3000', wbs); if (!result.ok) { setMessage(result.error); return; } store.setSandboxJournal(result.value); setMessage(result.value.description); };
-  const executeDepreciation = () => { const result = calculateDepreciation(store.state.assets); if (!result.ok) { setMessage(result.error); return; } store.setSandboxJournal(result.value); setMessage(result.value.description); };
-  return <main className="panel center"><nav className="workspace-tabs">{([['reader', 'Materi'], ['case', 'CAPEX $100k'], ['migo', 'MIGO & OBYC'], ['miro', 'MIRO'], ['avac', 'AVAC'], ['settlement', 'CJ88 & AFAB']] as const).map(([id, label]) => <button key={id} className={store.view === id ? 'active' : ''} onClick={() => { store.setView(id); setMessage(''); }}>{label}</button>)}</nav>
-    {store.view === 'reader' && <><div className="reader-heading"><span>MODUL {module.id} / 06</span><button onClick={store.markComplete}>Tandai selesai ✓</button></div><MarkdownReader markdown={module.rawMarkdown} onModule={store.openModule} /></>}
-    {store.view === 'case' && <><div className="eyebrow">SIMULASI END-TO-END · MM / PS / FI</div><h1>Proyek Gardu Induk 150kV</h1><p>Budget $100,000 · actual dan kapitalisasi $90,000 · sisa $10,000. Setiap sub-aksi diposting berurutan dalam workspace simulasi.</p><div className="actions"><button className="primary" onClick={store.nextCase} disabled={store.state.caseAction >= caseActions.length}>Jalankan aksi berikutnya</button><button onClick={store.runCase}>Jalankan semua</button><button onClick={store.resetCase}>Reset</button></div><div className="step-list">{caseActions.map((action, i) => <div className={`step ${i < store.state.caseAction ? 'done' : i === store.state.caseAction ? 'current' : ''}`} key={action.id}><span className="step-num">{i < store.state.caseAction ? '✓' : action.step}</span><div><strong>{action.title}</strong><small>{action.tcode} · {action.description}</small></div></div>)}</div></>}
-    {store.view === 'migo' && <><div className="eyebrow">MATERIALS MANAGEMENT</div><h1>Simulasi MIGO & OBYC</h1><p>Pratinjau jurnal berdasarkan nilai; sandbox tidak mengubah stok atau kasus CAPEX.</p><div className="form-grid"><label>Movement type<select value={movement} onChange={e => setMovement(e.target.value)}>{['101','103','105','122','201','221','261','281','301','311','412','551','561','701','702'].map(m => <option key={m}>{m}</option>)}</select></label><label>Nilai USD<input value={amount} onChange={e => setAmount(e.target.value)} /></label><label>WBS<input value={wbs} onChange={e => setWbs(e.target.value)} /></label><label className="check"><input type="checkbox" checked={projectStock} onChange={e => setProjectStock(e.target.checked)} /> Stok proyek Q</label></div><button className="primary" onClick={executeMigo}>Hitung jurnal</button><h2>Mapping OBYC lab</h2><div className="mapping">{Object.entries(accounts).map(([key, value]) => <div key={key}><b>{key}</b><span>{value}</span></div>)}</div></>}
-    {store.view === 'miro' && <><div className="eyebrow">LOGISTICS INVOICE VERIFICATION</div><h1>MIRO · 3-Way Match</h1><p>Masukkan nilai dalam USD, gunakan titik desimal. Nilai kurs adalah selisih positif pada invoice.</p><div className="form-grid"><label>Nilai GR<input value={gr} onChange={e => setGr(e.target.value)} /></label><label>Nilai invoice<input value={invoice} onChange={e => setInvoice(e.target.value)} /></label><label>Selisih kurs<input value={fx} onChange={e => setFx(e.target.value)} /></label><label>Price control<select value={control} onChange={e => setControl(e.target.value as PriceControl)}><option>V</option><option>S</option></select></label><label>Stock coverage (%)<input type="number" min="0" max="100" value={coverage} onChange={e => setCoverage(e.target.value)} /></label><label>Tax code<select value={tax} onChange={e => setTax(e.target.value as keyof typeof taxCodes)}>{Object.keys(taxCodes).map(t => <option key={t}>{t}</option>)}</select></label><label className="check"><input type="checkbox" checked={withholding} onChange={e => setWithholding(e.target.checked)} /> PPh 23 (2%)</label></div><button className="primary" onClick={executeMiro}>Hitung invoice</button></>}
+  const root = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!root.current) return;
+    if (store.view !== 'reader' || !store.readerAnchor) root.current.scrollTop = 0;
+    if (window.matchMedia('(max-width: 700px)').matches) root.current.scrollIntoView({ block: 'start' });
+  }, [store.view, store.selectedDictionary?.code, store.activeQuiz, store.moduleId, store.readerRequest, store.readerAnchor]);
+  const module = modules.find(item => item.id === store.moduleId) ?? modules[0];
+  const entry = dictionaries.find(item => item.code === store.selectedDictionary?.code && item.category === store.selectedDictionary.category);
+  const question = quiz.find(item => item.id === store.activeQuiz) ?? quiz[0];
+  const answered = question && question.id in store.quizAnswers;
+  return <main className="panel center" aria-label="Materi dan laboratorium" ref={root}>
+    <nav className="workspace-tabs" aria-label="Laboratorium">
+      {([['case', 'Simulation'], ['migo', 'MIGO & OBYC'], ['miro', 'MIRO'], ['avac', 'AVAC'], ['settlement', 'CJ88 & AFAB']] as const).map(([id, label]) => <button type="button" key={id} aria-pressed={store.view === id} className={store.view === id ? 'active' : ''} onClick={() => store.setView(id)}>{label}</button>)}
+    </nav>
+    {store.view === 'reader' && <>
+      <div className="reader-heading"><span>MODUL {module.id} / {modules.length}</span><button type="button" disabled={store.completed.includes(module.id)} onClick={store.markComplete}>{store.completed.includes(module.id) ? 'Selesai dibaca' : 'Tandai selesai'}</button></div>
+      <MarkdownReader markdown={module.rawMarkdown} onModule={store.openModule} anchor={store.readerAnchor} request={store.readerRequest} />
+    </>}
+    {store.view === 'dictionary' && <section className="dictionary-detail-card" aria-label="Keterangan kamus">
+      <div className="eyebrow">KAMUS KONSULTAN SAP · {entry?.category ?? 'REFERENSI'}</div>
+      {entry ? <>
+        <h1>{entry.code}</h1><p className="lead-description">{entry.description}</p>
+        <div className="detail-chip">Referensi / padanan: {entry.detail}</div>
+        <h2>Keterangan dan batas penerapan</h2>
+        <div className="detail-explanation-box">{entry.explanation?.split('\n').map((line, index) => <p key={index}>{line}</p>)}</div>
+        <p>Rujukan fungsi umum; ketersediaan transaksi, aplikasi Fiori, dan konfigurasi mengikuti edisi serta release SAP. Bukan koneksi ke sistem SAP perusahaan.</p>
+        {entry.sources?.length ? <section aria-label="Sumber resmi kamus"><h2>Sumber resmi</h2><ul>{entry.sources.filter(source => /^https:\/\//i.test(source.url)).map(source => <li key={source.url}><a href={source.url} target="_blank" rel="noopener noreferrer">{source.title}</a></li>)}</ul></section> : null}
+      </> : <><h1>Kamus SAP</h1><p>Pilih entri yang sesuai di daftar kamus. Tidak ada entri yang cocok dengan filter saat ini.</p></>}
+    </section>}
+    {store.view === 'quiz' && <section aria-label="Latihan pemahaman">
+      <div className="eyebrow">LATIHAN · BUKAN UJIAN SERTIFIKASI SAP</div>
+      {question && <>
+        <h1>{question.title}</h1><MarkdownReader markdown={question.question} onModule={store.openModule} />
+        {question.options.map((option, index) => <button type="button" key={option} className={`quiz-option ${answered && store.quizAnswers[question.id] === index ? 'selected' : ''}`} disabled={answered} onClick={() => store.answerQuiz(question.id, index)}>{option}</button>)}
+        {answered && <div className="quiz-feedback" role="status"><strong>{evaluateQuiz(question, store.quizAnswers[question.id]) ? 'Benar' : 'Belum tepat'}</strong><MarkdownReader markdown={question.answer} onModule={store.openModule} /></div>}
+      </>}
+      <button type="button" disabled={!Object.keys(store.quizAnswers).length} onClick={store.resetQuiz}>Ulangi seluruh latihan</button>
+    </section>}
+    {store.view === 'case' && <>
+      <div className="eyebrow">KASUS SINTETIS · TELKOM INFRASTRUKTUR / MM / PS / FI</div><h1>Deployment Fiber Optic Backbone Regional</h1>
+      <p>Contoh pembelajaran bisnis fiber PT Telkom Infrastruktur Indonesia (InfraNexia), bukan Telkominfra yang merupakan entitas berbeda. Budget $100,000 · actual dan kapitalisasi $90,000 · sisa $10,000. Lingkup, nilai, vendor, akun, pajak 11%, withholding 2%, WBS, dan umur manfaat adalah asumsi edukasi, bukan data internal atau kebijakan TelkomGroup. Simulasi tidak mengeksekusi transaksi SAP atau bank.</p>
+      <div className="actions"><button type="button" className="primary" disabled={store.state.caseAction >= caseActions.length} onClick={store.nextCase}>Jalankan aksi berikutnya</button><button type="button" disabled={store.state.caseAction >= caseActions.length} onClick={store.runCase}>Jalankan semua aksi tersisa</button><button type="button" disabled={store.state.caseAction === 0} onClick={store.resetCase}>Reset kasus</button></div>
+      <p role="status">{store.state.caseAction} / {caseActions.length} aksi selesai · Status {store.state.caseStatus}</p>
+      <div className="step-list">{caseActions.map((action, index) => {
+        const isDone = index < store.state.caseAction;
+        const isCurrent = index === store.state.caseAction;
+        const isSelected = store.selectedStepId === action.id;
+        const detail = caseStepDetails[action.id];
+        return <div className={`step ${isDone ? 'done' : isCurrent ? 'current' : ''} ${isSelected ? 'selected' : ''}`} key={action.id} role="button" tabIndex={0} aria-expanded={isSelected} onClick={() => store.setSelectedStepId(isSelected ? null : action.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); store.setSelectedStepId(isSelected ? null : action.id); } }}>
+          <span className="step-num">{isDone ? '✓' : action.step}</span>
+          <div className="step-content">
+            <div className="step-header-line">
+              <strong>{action.title}</strong>
+              <span className="step-click-prompt">{isSelected ? 'Tutup rincian ▲' : 'Klik untuk rincian ▼'}</span>
+            </div>
+            <small>{action.tcode} · {action.description}</small>
+            {isSelected && detail && <div className="step-inline-detail" onClick={event => event.stopPropagation()}>
+              <div className="step-detail-badge-row">
+                <span className="step-badge module">{detail.module}</span>
+                <span className={`step-badge status ${isDone ? 'done' : isCurrent ? 'current' : 'pending'}`}>{isDone ? '✓ Sudah dieksekusi' : isCurrent ? '⏳ Langkah berikutnya' : '🔒 Menunggu'}</span>
+                <span className="step-badge sap-status">Status SAP: {detail.sapStatus}</span>
+              </div>
+              <p className="step-inline-purpose"><strong>Tujuan:</strong> {detail.businessPurpose}</p>
+              <div className="step-inline-grid">
+                <div>
+                  <strong>Input Parameter:</strong>
+                  <ul>{detail.inputData.map((d, i) => <li key={i}>{d}</li>)}</ul>
+                </div>
+                <div>
+                  <strong>Perubahan Sistem & DB:</strong>
+                  <ul>
+                    {detail.systemChanges.map((sc, i) => <li key={i}>{sc}</li>)}
+                    {detail.dbImpact.map((db, i) => <li key={i}><code>{db.table}</code>: {db.description}</li>)}
+                  </ul>
+                </div>
+              </div>
+              <div className="step-inline-fi">
+                <strong>Akuntansi (FI) & Anggaran:</strong>
+                <p>{detail.fiJournalNote}</p>
+                <p className="step-inline-avac"><em>{detail.avacNote}</em></p>
+              </div>
+              <small className="step-inline-hint">💡 Rincian lengkap dan riwayat perubahan juga tampil otomatis di tab <strong>Detail Langkah</strong> pada panel kanan Inspector Lab.</small>
+            </div>}
+          </div>
+        </div>;
+      })}</div>
+    </>}
+    {store.view === 'migo' && <MigoLab />}
+    {store.view === 'miro' && <MiroLab />}
     {store.view === 'avac' && <AvacSandbox />}
-    {store.view === 'settlement' && <><div className="eyebrow">ASSET ACCOUNTING</div><h1>CJ88 & AFAB</h1><p>Periodic settlement memindahkan actual WBS ke AuC kelas 8000 tanpa penyusutan. Full settlement mengalihkan AuC ke aset final. Pada sistem nyata AIAB/AIBU juga dapat digunakan sesuai konfigurasi.</p><div className="form-grid"><label>Nilai settlement USD<input value={amount} onChange={e => setAmount(e.target.value)} /></label><label>WBS<input value={wbs} onChange={e => setWbs(e.target.value)} /></label></div><div className="actions"><button onClick={() => executeSettlement('PERIODIC')}>Pratinjau Periodic</button><button onClick={() => executeSettlement('FULL')}>Pratinjau Full (mesin)</button><button onClick={executeDepreciation}>Pratinjau AFAB</button></div><div className="mapping">{store.state.assets.map(asset => <div key={asset.id}><b>{asset.id} · Kelas {asset.assetClass}</b><span>{formatMoney(asset.value)} · Akumulasi {formatMoney(asset.depreciation)}</span></div>)}</div><button onClick={() => store.setView('case')}>Buka langkah settlement kasus</button></>}
-    {message && <div className={`notice ${message.includes('BP 604') ? 'error' : ''}`}>{message}</div>}{store.notice && <div className="notice">{store.notice}</div>}
+    {store.view === 'settlement' && <SettlementLab />}
   </main>;
 }

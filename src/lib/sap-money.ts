@@ -1,6 +1,7 @@
 import type { Result } from '../types/sap';
 
 export function parseMoney(text: string): Result<bigint> {
+  if (typeof text !== 'string') return { ok: false, error: 'Masukkan nominal yang valid.' };
   const trimmed = text.trim();
   if (!trimmed || trimmed.length > 20) return { ok: false, error: 'Masukkan nominal nonnegatif yang valid (maksimal 20 karakter).' };
   const match = /^(\d+)(?:\.(\d{1,2}))?$/.exec(trimmed);

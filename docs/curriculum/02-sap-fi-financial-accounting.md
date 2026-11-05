@@ -9,10 +9,11 @@
 
 ## 1. Anatomi Dokumen Akuntansi SAP FI
 
-Prinsip utama SAP FI adalah **"No Posting Without a Document"**. Setiap transaksi keuangan (baik diinput manual di FI maupun otomatis dari pergerakan barang MM atau settlement PS) menghasilkan sebuah dokumen akuntansi unik yang diidentifikasi oleh kombinasi 3 kunci utama (**Primary Key**):
-1. **Company Code (`BUKRS`)** — misal `1000`
-2. **Document Number (`BELNR`)** — misal `1900000125`
-3. **Fiscal Year (`GJAHR`)** — misal `2026`
+Contoh transaksi GUI/IMG terutama untuk ECC dan S/4HANA on-premise/private; Public Cloud menggunakan aplikasi dan konfigurasi yang dirilis untuk edisinya. Akun, mata uang, kelas aset, tarif dan jurnal di bawah adalah fixture edukasi, bukan konfigurasi standar atau nasihat pajak.
+
+Prinsip **“No Posting Without a Document”** berarti posting akuntansi didukung oleh dokumen. Dokumen FI diidentifikasi antara lain oleh company code (`BUKRS`), document number (`BELNR`) dan fiscal year (`GJAHR`); key penyimpanan lain dapat mencakup client, ledger atau nomor item.
+
+Rujukan SAP Learning S/4HANA: [dokumen FI dan Universal Journal](https://learning.sap.com/courses/configuring-additional-settings-in-financial-accounting-in-sap-s-4hana/executing-data-archiving-for-specific-fi-objects) dan [settlement proyek investasi](https://learning.sap.com/courses/discovering-the-basics-of-sap-s-4hana-project-system/executing-period-end-closing-activities_a362398a-e47c-45fd-b16f-39bce45fb32f). Tautan menjelaskan konsep, bukan validasi angka fixture.
 
 ### 1.1 Struktur Dokumen: Header vs Line Items
 
@@ -56,7 +57,7 @@ Document Type mengendalikan **Rentang Nomor Dokumen (*Number Range* `FBN1`)** da
 
 ### 1.3 Tabel Sakti Posting Keys (`OB41`)
 
-Di SAP, sistem tidak mengenal kolom "Debet" atau "Kredit" secara langsung di database, melainkan dikendalikan oleh 2 digit **Posting Key (`BSCHL`)**:
+Posting key (`BSCHL`) mengendalikan jenis akun, debit/kredit dan field status; database juga memiliki indikator debit/kredit. Key berikut contoh konfigurasi standar, tidak menjamin key pada setiap jurnal otomatis.
 
 | Jenis Akun | Posting Key **DEBIT** | Posting Key **CREDIT** | Keterangan Penggunaan |
 | :--- | :---: | :---: | :--- |
@@ -64,7 +65,7 @@ Di SAP, sistem tidak mengenal kolom "Debet" atau "Kredit" secara langsung di dat
 | **Vendor / Supplier (`K`)** | **`25`** *(Outg. Payment)*<br>**`21`** *(Credit Memo)*<br>**`29`** *(Special G/L Dr)* | **`31`** *(Invoice)*<br>**`39`** *(Special G/L Cr)* | `31` saat faktur hutang masuk; `25` saat hutang dibayar lunas; `29` saat bayar DP (`F-48`). |
 | **Customer (`D`)** | **`01`** *(Invoice)*<br>**`09`** *(Special G/L Dr)* | **`15`** *(Inc. Payment)*<br>**`11`** *(Credit Memo)*<br>**`19`** *(Special G/L Cr)* | `01` saat menagih piutang pelanggan; `15` saat pelanggan membayar. |
 | **Asset (`A`)** | **`70`** | **`75`** | `70` saat penambahan nilai aset/AuC; `75` saat penghapusan/akumulasi penyusutan aset. |
-| **Material Stock (`M`)** | **`89`** *(Stock Inward)* | **`99`** *(Stock Outward)* | `89` otomatis saat barang masuk di `MIGO` (101); `99` saat barang keluar (201/221). |
+| **Material Stock (`M`)** | **`89`** *(contoh stock inward)* | **`99`** *(contoh stock outward)* | Posting key otomatis bergantung transaksi dan konfigurasi. |
 
 ---
 
@@ -87,13 +88,13 @@ Sering terjadi error di lapangan ketika user hendak memposting `MIGO` atau `MIRO
 * **`F-02` (General Posting):** Layar klasik yang bisa menjurnal lintas jenis akun (G/L, Vendor, Customer, Asset sekaligus) dengan mengetikkan Posting Key manual.
 * **`FV50` / `FBV0` (Park & Post Document):** Menyimpan draf jurnal sementara (*Parked Document*) oleh staf junior (belum mengubah saldo buku besar) untuk kemudian diperiksa dan di-*Post* oleh manajer akuntansi.
 * **`FB03` (Display Document):** Melihat dokumen akuntansi yang sudah terbentuk.
-* **`FB08` (Reverse Individual Document):** Membatalkan dokumen FI yang salah.*(Catatan: Dokumen FI yang berasal dari logistik `MIGO`/`MIRO` **tidak bisa** dibatalkan lewat `FB08`, melainkan harus dibatalkan dari modul asalnya: `MIGO Cancellation` atau `MR8M`!).*
+* **`FB08` (Reverse Individual Document):** Membalik dokumen FI yang memenuhi syarat. Dokumen dari logistik umumnya dibalik dari proses asal (`MIGO` cancellation atau `MR8M`) agar dokumen terkait tetap konsisten.
 
 ### 2.2 Document Splitting (Pemecahan Dokumen Otomatis)
 Di S/4HANA (dan New GL ECC), laporan Neraca sering diminta tidak hanya per Company Code, tetapi juga per **Profit Center** atau **Segment**.
 * **Contoh:** Anda membeli barang dari 1 Vendor senilai Rp 10.000.000 untuk dua proyek di Profit Center berbeda (`PC-JAKARTA` Rp 6.000.000 dan `PC-SURABAYA` Rp 4.000.000).
 * Pada tampilan input (*Entry View*), baris Hutang Vendor hanya 1 baris (Rp 10.000.000).
-* Namun pada tampilan Buku Besar (*General Ledger View* di `ACDOCA`), fitur **Active Document Splitting** otomatis memecah baris Hutang Vendor dan PPN secara proporsional (60% ke `PC-JAKARTA` dan 40% ke `PC-SURABAYA`), sehingga Neraca per Profit Center selalu seimbang (*zero-balanced*).
+* Jika document splitting aktif dan dikonfigurasi untuk karakteristik dan transaksi tersebut, sistem dapat memecah baris vendor dan pajak sesuai aturan; zero balancing hanya berlaku jika dikonfigurasi.
 
 ---
 
@@ -156,21 +157,18 @@ Untuk membayar ratusan faktur jatuh tempo sekaligus secara otomatis dan menghasi
 Modul **FI-AA** sangat erat kaitannya dengan **SAP MM** (pembelian aset langsung) dan **SAP PS** (kapitalisasi proyek konstruksi menjadi aset tetap).
 
 ### 4.1 Konsep Kunci Arsitektur FI-AA
-* **Chart of Depreciation (`EC08`):** Kumpulan aturan penyusutan yang berlaku di suatu negara (misal `ID01` standar PSAK & Perpajakan Indonesia).
-* **Depreciation Areas:** Buku penilaian paralel dalam satu aset yang sama:
-  - Area **`01` (Book Depreciation):** Penyusutan komersial (PSAK/IFRS) — memposting jurnal otomatis ke Buku Besar secara real-time.
-  - Area **`15` (Tax Depreciation):** Penyusutan fiskal/pajak (sesuai UU PPh Pasal 11 Kelompok 1, 2, 3, 4 Bangunan).
-  - Area **`32` (Group Currency):** Penilaian dalam mata uang grup konsolidasi (misal `USD`).
-* **Asset Class (`OAOA`):** Pengelompokan aset yang menentukan rentang nomor, masa manfaat (*Useful Life*), metode penyusutan (*Depreciation Key*, misal `LINR` Garis Lurus / *Straight-Line* atau `DG20` Saldo Menurun), serta **Account Determination (`AO90`)**.
+* **Chart of Depreciation (`EC08`):** Kumpulan depreciation area dan aturan valuasi yang ditetapkan ke company code; kode dan isinya bergantung konfigurasi/lokalisasi.
+* **Depreciation Areas:** Dapat mewakili buku komersial, pajak, atau mata uang paralel. Nomor area dan mekanisme posting bukan standar universal.
+* **Asset Class (`OAOA`):** Menentukan default dan kontrol master aset, termasuk account determination (`AO90`); masa manfaat dan depreciation key dapat bergantung master serta konfigurasi.
 
-#### Contoh Kelas Aset Standar:
-| Asset Class | Deskripsi | Masa Manfaat | Penyusutan? | Keterangan Khusus |
+#### Contoh Kelas Aset Fiktif:
+| Asset Class | Deskripsi | Masa Manfaat Contoh | Penyusutan? | Keterangan Khusus |
 | :---: | :--- | :---: | :---: | :--- |
-| **`1000`** | Tanah / Land | - | ❌ Tidak | Tanah tidak disusutkan. |
-| **`2000`** | Bangunan & Gedung | 20 Tahun | ✅ Ya (5%/thn) | Menerima hasil *settlement* proyek gedung. |
-| **`3000`** | Mesin & Peralatan Pabrik | 8 - 16 Tahun | ✅ Ya | Dapat dibeli langsung via PO MM (`Acct Assgt A`) atau via proyek PS. |
-| **`4000`** | Kendaraan & Alat Berat | 4 - 8 Tahun | ✅ Ya | Wajib mengisi Nomor Polisi / VIN di master aset. |
-| **`8000`** | **Asset Under Construction (AuC)** | - | ❌ **Tidak (`0000`)** | **Jembatan Integrasi PS $\leftrightarrow$ FI-AA!** Menampung biaya proyek selama masa konstruksi. |
+| **`1000`** | Tanah | - | Umumnya tidak | Kebijakan akuntansi berlaku. |
+| **`2000`** | Bangunan | 20 tahun | Sesuai aturan | Contoh aset final. |
+| **`3000`** | Mesin | 10 tahun | Sesuai aturan | Dapat diperoleh langsung atau melalui proyek. |
+| **`4000`** | Kendaraan | 8 tahun | Sesuai aturan | Field master tergantung konfigurasi. |
+| **`8000`** | AuC | - | Contoh tanpa penyusutan | Tidak semua AuC atau kelas memakai pengaturan identik. |
 
 ### 4.2 Tiga Cara Perolehan Aset Tetap (Asset Acquisition)
 
@@ -183,7 +181,7 @@ Digunakan untuk membeli aset yang langsung siap pakai (misal: beli 5 unit Laptop
    \text{Dr. } & \text{Aset Tetap Mesin } (30000045\text{-}0 \rightarrow \text{G/L } 121030, \text{ PKey } 70) \\
    \text{Cr. } & \text{GR/IR Clearing Account } (\text{G/L } 210090, \text{ PKey } 50)
    \end{aligned}$$
-   Sejak tanggal MIGO tersebut, status aset langsung **Capitalized (Aktif)** dan siap disusutkan akhir bulan!
+   Tanggal kapitalisasi dan mulai penyusutan ditentukan oleh asset value date, depreciation key, period control, area, dan konfigurasi; penerimaan tidak otomatis berarti penyusutan langsung dimulai.
 
 #### Cara 2: Pembelian Langsung via FI-AP Tanpa PO (`F-90`)
 $$\begin{aligned}
@@ -199,17 +197,13 @@ Digunakan untuk proyek pembangunan jangka panjang (misal: membangun pabrik selam
 
 ## 5. Perpajakan di SAP FI: PPN (`FTXP`) & PPh (*Withholding Tax*)
 
-Dalam transaksi pengadaan di Indonesia (maupun global), faktur vendor hampir selalu melibatkan **PPN (Pajak Pertambahan Nilai)** dan **PPh Potong/Pungut (Pasal 23 / Pasal 4 ayat 2 / Pasal 21)**.
+Kode dan tarif berikut **contoh sintetis**, bukan tarif hukum Indonesia saat ini. Pajak masukan yang dapat/tidak dapat dikreditkan dan pembebanan ke stok atau biaya bergantung tax code, transaksi dan konfigurasi.
 
 ### 5.1 Mekanisme Tax Code PPN (`FTXP` & `OB40`)
-* Contoh Tax Code di Indonesia:
-  - **`V0`**: PPN Masukan 0% (Non-BKP / Bebas Pajak)
-  - **`V1`**: PPN Masukan 11% (atau 12% sesuai tarif berlaku) — Dapat Dikreditkan (*Deductible* $\rightarrow$ masuk ke akun Aset Pajak `115010` PPN Masukan).
-  - **`V2`**: PPN Masukan Tidak Dapat Dikreditkan (*Non-Deductible* — key `NVV` $\rightarrow$ nilai pajak otomatis ditambahkan ke nilai stok material atau biaya proyek WBS!).
-  - **`A1`**: PPN Keluaran 11% (Penjualan ke pelanggan $\rightarrow$ masuk ke akun Hutang Pajak `213010` PPN Keluaran).
+* `V0`, `V1`, `V2`, dan `A1` adalah contoh kode yang dapat dikonfigurasi; tidak ada pemetaan tarif universal. Contoh kasus memakai pajak masukan dapat dikreditkan 11% semata-mata untuk latihan.
 
 ### 5.2 Extended Withholding Tax (PPh Potong/Pungut)
-Ketika membayar jasa konstruksi atau jasa konsultan (misal Tagihan Jasa = Rp 100.000.000, PPN 11% = Rp 11.000.000, dipotong PPh 23 sebesar 2% = Rp 2.000.000):
+Contoh sintetis: jasa Rp 100.000.000, pajak masukan 11% Rp 11.000.000, dan withholding 2% Rp 2.000.000. Contoh mengasumsikan withholding diposting saat faktur; waktu posting dan dasar pajak bergantung konfigurasi dan aturan yang berlaku.
 
 ```text
 Jurnal Saat Verifikasi Faktur Jasa (MIRO / FB60):
@@ -227,15 +221,14 @@ Lihat bagaimana hutang bersih yang siap dibayar ke rekening vendor melalui `F110
 
 ## 6. Checklist Tutup Buku Bulanan & Tahunan (FI Period-End Closing)
 
-Urutan eksekusi *Month-End Closing* yang benar antara MM, PS, dan FI:
-
-1. **Pastikan seluruh transaksi fisik logistik selesai:** Semua barang masuk/keluar bulan tersebut sudah diposting di `MIGO` dan faktur di `MIRO`.
-2. **Buka periode MM bulan baru (`MMPV`)** dan kunci periode lama.
-3. **Rekonsiliasi & Clearing GR/IR (`F.13`):** Memasangkan secara otomatis item `MIGO` (Kredit GR/IR) dan `MIRO` (Debet GR/IR) yang nilainya sudah cocok sehingga saldo akun GR/IR hanya menyisakan barang yang belum ditagih atau tagihan yang barangnya belum datang.
-4. **Settlement Proyek PS (`CJ88`):** Mengalokasikan biaya WBS bulan berjalan ke AuC atau Cost Center.
-5. **Jalankan Penyusutan Aset Tetap (`AFAB`):** Menghitung dan memposting beban depresiasi seluruh aset aktif.
-6. **Penilaian Kurs Mata Uang Asing (`FAGL_FCV`):** Menyesuaikan nilai saldo Kas/Bank/Hutang/Piutang bermata uang asing (`USD`/`EUR`) ke kurs tengah BI akhir bulan (*Unrealized Gain/Loss on Forex*).
-7. **Tutup Periode Posting FI (`OB52`):** Mengunci bulan yang sudah selesai diaudit agar tidak ada jurnal susulan yang mengubah angka laporan.
+Urutan closing ditentukan kalender dan kebijakan perusahaan; contoh pemeriksaan:
+1. Rekonsiliasi penerimaan dan faktur serta transaksi yang masih terbuka.
+2. Rekonsiliasi GR/IR; `F.13` hanya membersihkan item yang memenuhi aturan matching, bukan semua perbedaan.
+3. Jalankan settlement PS (`CJ88`) sesuai settlement rule dan periode.
+4. Jalankan depresiasi (`AFAB`) untuk aset/area/periode yang memenuhi syarat.
+5. Lakukan valuasi mata uang asing menggunakan metode dan kurs yang dikonfigurasi, bila relevan.
+6. Kelola periode FI (`OB52`) dan MM (`MMPV`/`MMRV`) sesuai prosedur. `MMPV` memajukan periode MM; periode sebelumnya mungkin masih diizinkan sesuai pengaturan.
+7. Tinjau laporan keuangan dan exception sebelum menutup periode.
 8. **Cetak Laporan Keuangan (`F.01` / Fiori * Financial Statement*):** Menarik laporan Neraca (*Balance Sheet*) dan Laba Rugi (*Income Statement*).
 
 ---

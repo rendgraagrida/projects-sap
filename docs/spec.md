@@ -1146,11 +1146,11 @@ Trim spasi pinggir, uppercase canonical; spasi internal T-Code ditolak. Grammar 
 
 `/oCODE` membuat logical UI session tambahan (maksimal6), bukan popup browser/OS; domain workspace sama, draft tiap sesi terpisah. `/nCODE` mengganti transaksi pada sesi aktif; dirty draft memakai konfirmasi discard di UI. Command unknown -> UNSUPPORTED_COMMAND dan dictionary suggestions; command known tetapi READ_ONLY -> buka dictionary/context, tidak fake successful transaction. `/o` tanpa code, URL, karakter shell, string ekstra, dan `F1/F4` sebagai posting command ditolak. F1/F4 tetap bantuan field/search-help UI bila diimplementasikan, bukan engine transaction.
 
-## 6. Studi kasus CAPEX: urutan dan checkpoint wajib
+## 6. Simulation investasi fiber: urutan dan checkpoint wajib
 
 ### 6.1 Seed dan isolasi
 
-Case seed belum mempunyai project/WBS/PO/aset. Ada perusahaan/plant/vendor/material/config dan stock umum **100 m kabel $5,000** (V, qty=100000 Qty, value=500000 cents). Seed diberi badge `opening stock sintetis`, tidak dianggap jurnal dari langkah1. Trafo stock nol; price control V, harga case $50,000 per unit. USD lokal/document 1:1. Date November2026, month end `2026-11-30`. Aset memakai useful life 240/120 bulan dan residual0. Tidak memakai GL balance palsu untuk menyeimbangkan opening inventory; inspector scope jurnal hanya transaksi simulasi, opening inventory dijelaskan terpisah.
+Fixture Simulation memakai konteks bisnis fiber PT Telkom Infrastruktur Indonesia (TIF/InfraNexia), bukan Telkominfra atau proyek internal yang dikonfirmasi. Seed belum mempunyai project/WBS/PO/aset; material pendukung stok umum bernilai $5,000, material fiber project stock nol. PO material $50,000 memakai Q dan jasa deployment $35,000 memakai P/D. USD, akun, vendor, pajak, umur manfaat 240/120 bulan dan residual nol adalah asumsi edukasi, bukan kebijakan TelkomGroup. Angka rekonsiliasi dipertahankan; label tab sebelumnya “CAPEX $100k” adalah label aplikasi, kini **Simulation**. Detail dan sumber konteks bisnis berada di Modul 05.
 
 Stepper dan sandbox adalah **dua workspace domain terpisah**. User yang bereksperimen MIRO $110k di calculator tidak merusak checkpoint CAPEX. Right panel selalu menunjuk workspace aktif dan badge namanya; berpindah mode mempertahankan masing-masing snapshot. Reset case dengan konfirmasi mengembalikan seed+progress, tidak mereset study/quiz atau sandbox.
 
@@ -1160,20 +1160,20 @@ Setiap subaction dapat dieksekusi/diinspeksi sendiri. Tombol `Jalankan langkah` 
 
 | Step | Subactions berurutan | Checkpoint agregat USD setelah step |
 | --- | --- | --- |
-| 1 CJ20N | create project P-2026-GI01, .01 sipil, .02 material, CRTD | budget0, assigned0, actual0, no FI; PROJ/PRPS |
+| 1 CJ20N | create project TINF-2026-01, .01 site/deployment, .02 fiber/network material, CRTD | budget0, assigned0, actual0, no FI; PROJ/PRPS |
 | 2 CJ30/CJ32 | original dan release .01=40k, .02=60k, AVAC aktif | released100k, assigned0, available100k; BPGE/BPJA |
 | 3 CJ20N REL | release dua WBS, auto AuC8000015-0/.01 dan8000016-0/.02, PER rules | available100k; ANLA/ANLB/COBRB; **no FI** |
-| 4 ME51N/ME21N/ME29N | create PR trafo50k dan jasa35k; convert masing-masing ke PO4500010001/00010 Q dan4500010002/00010 D/P; approve dua PO | PR0, PO85k, actual0, assigned85k, available15k; .01 available5k, .02 available10k; no FI |
-| 5 F-47/F-48 | noted DP request7k, bayar DP7k contractor | budget tidak berubah; Dr DP1160107k PKey29/A, Cr bank1110207k |
-| 6 MIGO | 6A101Q trafo1 unit50k; 6B221Q50k; 6C221 kabel100m5k ke.02 | .02 actual55k, PO0; .01 PO35k actual0; assigned90k, available10k |
-| 7 ML81N | accepted SES35k PO jasa (automatic GR) | .01 actual35k, .02 actual55k, PR/PO0, assigned90k, available10k |
-| 8 MIRO/F-54/F110 | invoice trafo50k+VAT5.5k ->AP55.5k; invoice jasa35k+VAT3.85k-WHT.7k ->AP38.15k; clear DP7k ->AP31.15k; bayar dua vendor86.65k | actual90k, available10k, AP/DP/GRIR0; withholding liability700 tetap unpaid |
+| 4 ME51N/ME21N/ME29N | create PR material fiber50k dan jasa deployment35k; convert masing-masing ke PO4500010001/00010 Q dan4500010002/00010 D/P; approve dua PO | PR0, PO85k, actual0, assigned85k, available15k; .01 available5k, .02 available10k; no FI |
+| 5 F-47/F-48 | noted DP request7k, bayar DP7k vendor deployment | budget tidak berubah; Dr DP1160107k PKey29/A, Cr bank1110207k |
+| 6 MIGO | 6A101Q material fiber50k; 6B221Q50k; 6C221 material pendukung5k ke.02 | .02 actual55k, PO0; .01 PO35k actual0; assigned90k, available10k |
+| 7 ML81N | accepted SES35k PO jasa deployment (automatic GR) | .01 actual35k, .02 actual55k, PR/PO0, assigned90k, available10k |
+| 8 MIRO/F-54/F110 | invoice material50k+VAT5.5k ->AP55.5k; invoice jasa35k+VAT3.85k-WHT.7k ->AP38.15k; clear DP7k ->AP31.15k; bayar dua vendor86.65k | actual90k, available10k, AP/DP/GRIR0; withholding liability700 tetap unpaid |
 | 9 CJ88 PER | settle .0135k dan .0255k ->dua AuC | AuC90k, unsettled WBS0; budget tetap actual90k/available10k |
-| 10 AS01/CJ20N/CJ88/AFAB | create building2000099-0, machine3000099-0; TECO; FUL100% per sender; AFAB2026-11 | AuC0, final APC90k, depreciation604.16, NBV89,395.84; available10k |
+| 10 AS01/CJ20N/CJ88/AFAB | create network site2000099-0, fiber/network equipment3000099-0; TECO; FUL100% per sender; AFAB2026-11 | AuC0, final APC90k, depreciation604.16, NBV89,395.84; available10k |
 
-Checkpoint **antara** subactions6A/6B: setelah6A `.02 openPo=0`, heldQ50k, actual0, assigned50k, available10k; COOI material tidak open, MSPR1 unit, FI Dr114015/Cr21009050k. Setelah6B heldQ0 actual50k, same assigned/available, MSPR0. Ini acceptance penting untuk membuktikan state bukan gambar hasil akhir saja.
+Checkpoint **antara** subactions6A/6B: setelah6A `.02 openPo=0`, heldQ50k, actual0, assigned50k, available10k; COOI material tidak open, MSPR1 lot, FI Dr114015/Cr21009050k. Setelah6B heldQ0 actual50k, same assigned/available, MSPR0. Ini acceptance penting untuk membuktikan state bukan gambar hasil akhir saja.
 
-Detail jurnal step8 wajib persis angka sumber: supplier service payable **38,150** (bukan38,850); clear DP **7,000**; payment **86,650**; total bank outflow termasuk DP **93,650**. VAT total **9,350**, WHT **700**. Tidak membayar WHT ke negara otomatis karena bukan action kurikulum. Step9 jurnal Dr12901035k+55k / Cr59901035k+55k masing-masing WBS. Step10 Dr12102035k+12103055k / Cr12901090k, lalu Dr610010604.16 / Cr122020145.83+122030458.33.
+Detail jurnal step8 wajib persis angka sumber: supplier service payable **38,150**; clear DP **7,000**; payment **86,650**; total bank outflow termasuk DP **93,650**. VAT total **9,350**, WHT **700**. Tidak membayar WHT ke negara otomatis karena bukan action kurikulum. Step9 jurnal Dr12901035k+55k / Cr59901035k+55k masing-masing WBS. Step10 Dr12102035k+12103055k / Cr12901090k, lalu Dr610010604.16 / Cr122020145.83+122030458.33.
 
 Progress menyimpan action IDs sukses; completed step hanya bila seluruh actions-nya committed. Tidak skip prerequisites. Step lama boleh dibuka/read-only; tidak replay posting sukses. Reset diperlukan untuk mengulang kasus dari seed. Perubahan input case yang menyimpang dari fixture disediakan melalui `Coba di Sandbox`, bukan mengubah kasus fixed sehingga acceptance hilang. Tombol tersebut menyalin snapshot ke sandbox dengan label asal, bukan berbagi reference mutable.
 

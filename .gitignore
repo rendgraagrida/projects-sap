@@ -2,6 +2,7 @@ node_modules/
 dist/
 .vite/
 coverage/
+.wrangler/
 *.local
 .env
 .env.*

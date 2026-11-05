@@ -1,63 +1,104 @@
-import { Fragment, type ReactNode } from 'react';
+import { createElement, useEffect, useId, useMemo, useRef, useState } from 'react';
+import ReactMarkdown, { defaultUrlTransform, type Components } from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 import { modules } from '../data/curriculum';
-import { slugHeading } from '../lib/study-engine';
+import type { Mermaid } from 'mermaid';
+import { parseCurriculum, slugHeading } from '../lib/study-engine';
 
-interface Props { markdown: string; onModule: (id: string) => void }
-function inline(text: string, onModule: (id: string) => void): ReactNode[] {
-  const parts = text.split(/(`[^`]+`|\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*|\*[^*]+\*)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith('`') && part.endsWith('`')) return <code key={i}>{part.slice(1, -1)}</code>;
-    if (part.startsWith('**') && part.endsWith('**')) return <strong key={i}>{part.slice(2, -2)}</strong>;
-    if (part.startsWith('*') && part.endsWith('*')) return <em key={i}>{part.slice(1, -1)}</em>;
-    const link = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(part);
-    if (link) {
-      const module = modules.find(item => link[2].includes(item.fileName));
-      if (module) return <button className="text-link" key={i} onClick={() => onModule(module.id)}>{link[1]}</button>;
-      if (/^https?:\/\//i.test(link[2])) return <a key={i} href={link[2]} target="_blank" rel="noopener noreferrer">{link[1]}</a>;
-      return <span key={i}>{link[1]}</span>;
-    }
-    return <Fragment key={i}>{part}</Fragment>;
-  });
+interface Props {
+  markdown: string;
+  onModule: (id: string, anchor?: string) => void;
+  anchor?: string | null;
+  request?: number;
 }
-export function MarkdownReader({ markdown, onModule }: Props) {
-  const lines = markdown.split(/\r?\n/);
-  const nodes: ReactNode[] = [];
-  const counts = new Map<string, number>();
-  let i = 0;
-  while (i < lines.length) {
-    const current = lines[i];
-    if (!current.trim()) { i++; continue; }
-    const fence = /^\s*```(.*)/.exec(current);
-    if (fence) {
-      const content: string[] = []; i++;
-      while (i < lines.length && !/^\s*```/.test(lines[i])) content.push(lines[i++]);
-      if (i < lines.length) i++;
-      nodes.push(<pre key={i}><small>{fence[1] === 'mermaid' ? 'Diagram Mermaid (sumber)' : fence[1]}</small><code>{content.join('\n')}</code></pre>); continue;
+
+const schema = {
+  ...defaultSchema,
+  tagNames: [...(defaultSchema.tagNames ?? []), 'details', 'summary'],
+  attributes: { ...defaultSchema.attributes, code: [...(defaultSchema.attributes?.code ?? []), ['className', /^language-./, 'math-inline', 'math-display']] },
+};
+let mermaidLibrary: Promise<Mermaid> | null = null;
+function MermaidDiagram({ source }: { source: string }) {
+  const id = `sap-diagram-${useId().replace(/[^a-zA-Z0-9-]/g, '')}`;
+  const [image, setImage] = useState('');
+  const [error, setError] = useState('');
+  useEffect(() => {
+    let active = true;
+    setImage('');
+    setError('');
+    mermaidLibrary ??= import('mermaid').then(({ default: mermaid }) => {
+      mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'neutral', suppressErrorRendering: true, htmlLabels: false, flowchart: { htmlLabels: false } });
+      return mermaid;
+    });
+    void mermaidLibrary.then(mermaid => mermaid.render(id, source)).then(result => {
+      if (active) setImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(result.svg)}`);
+    }).catch(() => { if (active) setError('Diagram tidak dapat dirender. Periksa sumber diagram berikut.'); });
+    return () => { active = false; };
+  }, [id, source]);
+  if (error) return <div><p role="alert">{error}</p><pre><code>{source}</code></pre></div>;
+  return image ? <figure className="mermaid-diagram"><img src={image} alt="Diagram alur atau relasi SAP dari materi" /></figure> : <p role="status">Memuat diagram…</p>;
+}
+
+export function MarkdownReader({ markdown, onModule, anchor, request }: Props) {
+  const root = useRef<HTMLDivElement>(null);
+  const headings = useMemo(() => new Map(parseCurriculum('', '', markdown).headings.map(heading => [heading.startLine, heading.id])), [markdown]);
+  useEffect(() => {
+    if (!root.current || !anchor) return;
+    const target = root.current.querySelector<HTMLElement>(`#${CSS.escape(anchor)}`);
+    if (!target) return;
+    let parent = target.parentElement;
+    while (parent && parent !== root.current) {
+      if (parent instanceof HTMLDetailsElement) parent.open = true;
+      parent = parent.parentElement;
     }
-    if (/^<details>/.test(current.trim())) {
-      const content: string[] = []; i++;
-      while (i < lines.length && !/^<\/details>/.test(lines[i].trim())) content.push(lines[i++]);
-      if (i < lines.length) i++;
-      const summaryLine = content.find(line => /^<summary>/.test(line.trim()));
-      const summaryText = summaryLine ? summaryLine.replace(/<\/?(?:summary|b|strong|i|em)>/gi, '').trim() : 'Lihat jawaban dan pembahasan';
-      const body = content.filter(line => !/^<summary>/.test(line.trim())).join('\n');
-      nodes.push(<details key={i}><summary>{summaryText || 'Lihat jawaban dan pembahasan'}</summary><MarkdownReader markdown={body} onModule={onModule} /></details>); continue;
-    }
-    const heading = /^(#{1,6})\s+(.+?)\s*#*\s*$/.exec(current);
-    if (heading) {
-      const text = heading[2].replace(/[`*_]/g, ''); const base = slugHeading(text) || 'section'; const count = (counts.get(base) ?? 0) + 1; counts.set(base, count); const id = count === 1 ? base : `${base}-${count}`;
-      const contents = inline(heading[2], onModule);
-      nodes.push(heading[1].length === 1 ? <h1 id={id} key={i}>{contents}</h1> : heading[1].length === 2 ? <h2 id={id} key={i}>{contents}</h2> : <h3 id={id} key={i}>{contents}</h3>); i++; continue;
-    }
-    if (current.startsWith('|') && i + 1 < lines.length && /^\|\s*[:-]/.test(lines[i + 1])) {
-      const rows: string[][] = []; rows.push(current.split('|').slice(1, -1)); i += 2;
-      while (i < lines.length && lines[i].startsWith('|')) rows.push(lines[i++].split('|').slice(1, -1));
-      nodes.push(<div className="table-wrap" key={i}><table><thead><tr>{rows[0].map((cell, j) => <th key={j}>{inline(cell.trim(), onModule)}</th>)}</tr></thead><tbody>{rows.slice(1).map((row, j) => <tr key={j}>{row.map((cell, k) => <td key={k}>{inline(cell.trim(), onModule)}</td>)}</tr>)}</tbody></table></div>); continue;
-    }
-    if (/^\s*---+\s*$/.test(current)) { nodes.push(<hr key={i++} />); continue; }
-    if (/^\s*[-*]\s/.test(current)) { nodes.push(<p className="list-item" key={i}>{inline(current.replace(/^\s*[-*]\s/, '• '), onModule)}</p>); i++; continue; }
-    if (/^>/.test(current)) { nodes.push(<blockquote key={i}>{inline(current.replace(/^>\s?/, ''), onModule)}</blockquote>); i++; continue; }
-    nodes.push(<p key={i}>{inline(current, onModule)}</p>); i++;
+    target.tabIndex = -1;
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ block: 'start' });
+  }, [anchor, request, markdown]);
+
+  const components: Components = {
+    a: ({ href, children }) => {
+      if (!href) return <span>{children}</span>;
+      if (/^https?:\/\//i.test(href)) return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
+      const [file, hash] = href.split('#');
+      const module = modules.find(item => file.replace(/^\.\//, '') === item.fileName);
+      if (module) return <button type="button" className="text-link" onClick={() => onModule(module.id, hash ? decodeURIComponent(hash) : undefined)}>{children}</button>;
+      if (!file && hash) return <a href={href} onClick={event => {
+        event.preventDefault();
+        const target = root.current?.querySelector<HTMLElement>(`#${CSS.escape(decodeURIComponent(hash))}`);
+        if (!target) return;
+        let parent = target.parentElement;
+        while (parent && parent !== root.current) {
+          if (parent instanceof HTMLDetailsElement) parent.open = true;
+          parent = parent.parentElement;
+        }
+        target.tabIndex = -1;
+        target.focus({ preventScroll: true });
+        target.scrollIntoView({ block: 'start' });
+      }}>{children}</a>;
+      return <span>{children}</span>;
+    },
+    pre: ({ children }) => <>{children}</>,
+    code: ({ className, children }) => {
+      const value = String(children).replace(/\n$/, '');
+      if (className === 'language-mermaid') return <MermaidDiagram source={value} />;
+      return className || String(children).endsWith('\n')
+        ? <pre><code className={className}>{value}</code></pre>
+        : <code>{children}</code>;
+    },
+    table: ({ children }) => <div className="table-wrap"><table>{children}</table></div>,
+  };
+  for (const tag of ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as const) {
+    components[tag] = ({ node, children }) => createElement(tag, { id: headings.get(node?.position?.start.line ?? -1) ?? slugHeading(String(children)) }, children);
   }
-  return <div className="markdown">{nodes}</div>;
+  return <div className="markdown" ref={root}>
+    <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeRaw, [rehypeSanitize, schema], [rehypeKatex, { trust: false, throwOnError: false }]]} components={components} urlTransform={url => /^https?:\/\//i.test(url) || url.startsWith('#') || /^\.?\/?[\w-]+\.md(?:#.*)?$/.test(url) ? defaultUrlTransform(url) : ''}>
+      {markdown}
+    </ReactMarkdown>
+  </div>;
 }

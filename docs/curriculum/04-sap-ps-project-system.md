@@ -11,6 +11,7 @@
 ## 1. Tiga Kategori Proyek di SAP PS
 
 Modul **SAP PS (Project System)** dirancang untuk merencanakan, mengendalikan anggaran, mengeksekusi pengadaan, dan mempertanggungjawabkan biaya proyek secara presisi. Berdasarkan tujuan akhirnya, proyek di SAP PS terbagi menjadi 3 jenis:
+Contoh ini terutama menggambarkan classic PS pada ECC dan S/4HANA on-premise/private; Public Cloud memiliki proses, aplikasi, dan opsi konfigurasi yang berbeda menurut rilis. Status, AVAC, commitment dan settlement bergantung profil serta aturan yang dikonfigurasi.
 
 | Jenis Proyek | Contoh Bisnis Nyata | Sumber Pendanaan | Muara Akhir Biaya (*Settlement Receiver* di `CJ88`) |
 | :--- | :--- | :--- | :--- |
@@ -36,8 +37,8 @@ flowchart TD
     WBS3_1["🔹 WBS Level 2: P-2026-GI01.03.01\nPengadaan Trafo Utama 150kV (Acct Assgt ✅)"]
     WBS3_2["🔹 WBS Level 2: P-2026-GI01.03.02\nInstalasi & Komisioning (Acct Assgt ✅)"]
 
-    Net1["⚙️ Network 90001010\nAct 0010: Jasa Cor Pondasi (External Service)\n➔ Otomatis Buat PR Jasa (Item Cat 'D') di MM!"]
-    Net2["⚙️ Network 90001011\nAct 0020: Komponen Material Trafo\n➔ Otomatis Buat PR/Reservasi Material di MM!"]
+    Net1["⚙️ Network 90001010\nAct 0010: Jasa Cor Pondasi\n➔ Kebutuhan PR sesuai konfigurasi"]
+    Net2["⚙️ Network 90001011\nAct 0020: Komponen Material Trafo\n➔ Kebutuhan PR/Reservasi sesuai konfigurasi"]
 
     PD --> WBS1 & WBS2 & WBS3
     WBS2 --> WBS2_1 --> Net1
@@ -58,14 +59,10 @@ flowchart TD
 
 Di dalam `CJ20N`, di bawah suatu WBS Element, seorang *Project Engineer* dapat membuat **Network Activity** dalam 4 jenis:
 
-1. **Internal Activity:** Pekerjaan oleh teknisi internal perusahaan. Mengacu pada *Work Center* (`CR01`) dan tarif biaya per jam di *Activity Type* (`KP26`). Realisasi jam kerja diinput di **`CN25`** atau Timesheet **`CAT2`**.
-2. **External Processing Activity:** Pekerjaan yang diborongkan ke vendor luar. **Begitu status Activity di-*Release*, SAP PS otomatis menerbitkan nomor Purchase Requisition (PR)** yang langsung muncul di daftar kerja tim pengadaan MM (`ME53N` / `ME5A`)!
-3. **Service Activity:** Pekerjaan jasa kontraktor (misal jasa konstruksi sipil). **Otomatis menerbitkan PR dengan Item Category `D` (Service)** untuk kemudian dibuatkan PO Jasa (`ME21N`) dan BAST (`ML81N`).
-4. **Material Component (Di bawah Activity):**
-   - Engineer memasukkan kode material (`MM03`) dan jumlah yang dibutuhkan proyek.
-   - Pada kolom *Procurement Type*, engineer memilih:
-     - **`Reservation for WBS / Network`**: Jika barangnya adalah stok gudang reguler $\rightarrow$ sistem membuat nomor **Reservasi (`MB23`)** agar orang gudang tinggal mengeluarkan barang dengan **`MIGO` Movement `281` / `221`**.
-     - **`Purchase Requisition + Reservation for WBS`**: Jika barang harus dibeli khusus untuk proyek $\rightarrow$ sistem otomatis membuat **PR dengan Account Assignment `Q` (Project Stock) atau `P` (Direct Consumption)**!
+1. **Internal Activity:** Pekerjaan internal dengan work center dan activity type; konfirmasi/timesheet dicatat melalui transaksi yang tersedia dan ditetapkan dalam proses.
+2. **External Processing Activity:** Dapat menghasilkan PR sesuai control key, tanggal pemicu, status, dan konfigurasi; tidak selalu tepat pada saat release.
+3. **Service Activity:** Dapat menghasilkan kebutuhan jasa dan PR untuk proses jasa yang didukung; item category dan SES bergantung desain classic/lean serta edisi.
+4. **Material Component:** Komponen stok dapat menghasilkan reservasi; kebutuhan external procurement dapat menghasilkan PR. Penetapan network/WBS, jenis stok, account assignment dan waktu pembentukan ditentukan item category, procurement indicator, status, dan konfigurasi.
 
 ---
 
@@ -81,10 +78,10 @@ Created          Released        Technically      Closed
 
 | Kode Status | Nama Status | Apa yang Terjadi & Apa yang Diizinkan? |
 | :---: | :--- | :--- |
-| **`CRTD`** | **Created** | • Proyek baru dirancang.<br>• **Boleh:** Input *Cost Planning* (`CJ40`) dan *Original Budget* (`CJ30`).<br>• **DILARANG:** Belum bisa dipakai membuat PR/PO (`ME51N`/`ME21N`), tidak bisa `MIGO`, dan tidak bisa dijurnal di FI (`FB50`). |
-| **`REL`** | **Released** | • Proyek resmi disetujui untuk berjalan.<br>• **Keajaiban Integrasi PS-FI (Investment Profile `OITA`):** Begitu WBS proyek investasi diubah dari `CRTD` ke `REL` dan di-*Save*, **SAP secara otomatis membuatkan Master Data Asset Under Construction (AuC)** di modul FI-AA dan menautkannya di *Settlement Rule* WBS!<br>• **Boleh:** Semua transaksi pengadaan PR, PO, MIGO, ML81N, MIRO, FB50, dan Settlement `CJ88`. |
-| **`TECO`** | **Technically Completed** | • Pekerjaan fisik konstruksi di lapangan sudah selesai.<br>• **DILARANG:** Tidak boleh lagi membuat PR atau PO baru untuk WBS ini.<br>• **Masih Boleh:** Menerima tagihan faktur `MIRO` atas PO lama yang belum ditagih, dan menjalankan *Full Settlement* (`CJ88`) dari AuC ke Aset Tetap Final. |
-| **`CLSD`** | **Closed** | • Proyek sudah selesai 100% baik fisik maupun keuangan (saldo biaya yang belum di-*settle* = 0).<br>• **DILARANG:** Seluruh posting logistik maupun akuntansi dikunci permanen. |
+| **`CRTD`** | **Created** | Status awal; planning/budget dan transaksi yang diizinkan bergantung profil, objek dan business transaction control. |
+| **`REL`** | **Released** | Memungkinkan transaksi yang relevan sesuai kontrol status. Investment profile dan konfigurasi yang memenuhi syarat dapat menghasilkan AuC; release saja bukan jaminan universal. |
+| **`TECO`** | **Technically Completed** | Menandai penyelesaian teknis; konsekuensi PR/PO, invoice dan settlement bergantung status objek dan konfigurasi. |
+| **`CLSD`** | **Closed** | Penutupan memerlukan prasyarat dan membatasi transaksi; jangan menganggap irreversibel atau identik pada semua objek. |
 
 ---
 
@@ -93,44 +90,43 @@ Created          Released        Technically      Closed
 Jangan pernah menyamakan **Planning** dengan **Budgeting** di SAP PS:
 
 * **Cost Planning (`CJ40` / Easy Cost Planning):** Perkiraan rincian biaya yang diusulkan dari bawah ke atas (*Bottom-Up*) oleh tim teknis sebelum proyek disetujui. Nilai Plan **tidak mengunci/memblokir** transaksi pembelian.
-* **Budgeting (`CJ30` Original Budget & `CJ32` Release Budget):** Plafon dana resmi yang disahkan oleh Direksi dari atas ke bawah (*Top-Down*). Begitu Budget disimpan dan di-*Release*, mesin **Availability Control (AVAC)** aktif menjaga agar proyek tidak bisa belanja melebihi anggaran!
+* **Budgeting (`CJ30` Original Budget & `CJ32` Release Budget):** Budget adalah plafon; release dan aktivasi AVAC adalah pengaturan berbeda. Profil menentukan apakah kontrol memakai current budget atau released budget, kapan aktif, tolerance limits dan respons per transaksi.
 
-### 4.1 Rumus Matematika Mesin Availability Control (AVAC)
+### 4.1 Rumus Konseptual Availability Control (AVAC)
 
-Setiap kali ada seseorang di perusahaan yang membuat PR (`ME51N`), PO (`ME21N`), mengeluarkan barang gudang (`MIGO`), atau menjurnal biaya (`FB50`/`FB60`) dengan mencantumkan kode WBS, mesin **AVAC** menghitung rumus berikut secara *real-time*:
+Dalam contoh sederhana tanpa overlap atau kategori pengecualian, assigned value terdiri atas commitment relevan dan actual relevan. Budget yang tersedia adalah basis kontrol yang dikonfigurasi dikurangi assigned value. Nilai nyata juga dipengaruhi hierarki, transaksi, tolerance dan konfigurasi; PR yang dikonversi tidak boleh dihitung dua kali sebagai PR dan PO.
 
-$$\text{Assigned Value (Dana Terikat)} = \text{PR Commitment} + \text{PO Commitment} + \text{Actual Cost}$$
-
-$$\text{Available Budget (Sisa Anggaran)} = \text{Released Budget} - \text{Assigned Value}$$
+Rujukan SAP Learning S/4HANA: [budgeting, release dan budget updates](https://learning.sap.com/courses/project-financials-control-in-sap-s-4hana/performing-budgeting-functions) serta [profil dan toleransi availability control](https://learning.sap.com/courses/project-financials-control-in-sap-s-4hana/configuring-budgeting-functions). Release budget terpisah dari status `REL` WBS.
 
 ### 4.2 Simulasi Pergerakan Anggaran Proyek dari PR $\rightarrow$ PO $\rightarrow$ MIGO $\rightarrow$ MIRO
 
-Perhatikan bagaimana SAP PS memindahkan nilai dari **Commitment (Dana Dipesan)** menjadi **Actual Cost (Biaya Riil)** tanpa pernah menghitung ganda (*double counting*):
+Berikut **ilustrasi direct consumption**, dengan kontrol aktif atas released budget, seluruh PR dikonversi, GR bernilai, invoice selisih dibebankan ke proyek, dan respons error dikonfigurasi. Ini bukan hasil universal untuk project stock `Q` atau semua sistem.
 
-> **Misal:** WBS `P-2026-GI01.03.01` diberi **Budget (`CJ30`) = \$50,000**.
+> WBS `P-2026-GI01.03.01` diberi **Budget (`CJ30`) = \$50,000**, seluruhnya direlease.
 
 | Tahap Transaksi | PR Commitment | PO Commitment | Actual Cost | Total Assigned Value | Sisa Budget Tersedia | Penjelasan Logika SAP PS |
 | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **0. Budget Awal (`CJ30`)** | \$0 | \$0 | \$0 | **\$0** | **\$50,000** | Anggaran \$50,000 siap dipakai; status AVAC menjadi `AVAC` (Active). |
+| **0. Budget Awal (`CJ30`/`CJ32`)** | \$0 | \$0 | \$0 | **\$0** | **\$50,000** | AVAC diasumsikan aktif oleh profil yang dikonfigurasi. |
 | **1. Buat PR 1 Unit Trafo (`ME51N` = \$30,000)** | **\$30,000** | \$0 | \$0 | **\$30,000** | **\$20,000** | PR mengikat anggaran sebesar \$30,000 sebagai *PR Commitment*. |
 | **2. PR diubah jadi PO (`ME21N` hasil negosiasi dapat diskon jadi \$28,000)** | **\$0** *(Lunas)* | **\$28,000** | \$0 | **\$28,000** | **\$22,000** | *PR Commitment* \$30,000 otomatis dihapus dan digantikan oleh *PO Commitment* sebesar harga kontrak PO (\$28,000). Sisa budget kembali naik jadi \$22,000! |
 | **3. Barang Datang di Lokasi (`MIGO 101` = \$28,000)** | \$0 | **\$0** *(Lunas)* | **\$28,000** | **\$28,000** | **\$22,000** | *PO Commitment* berubah menjadi **Actual Cost** sebesar \$28,000 saat barang diterima. |
 | **4. Faktur Vendor Masuk (`MIRO` ternyata ada tambahan biaya kirim tak terduga \$1,000 $\rightarrow$ Total \$29,000)** | \$0 | \$0 | **\$29,000** | **\$29,000** | **\$21,000** | Selisih faktur \$1,000 langsung menambah *Actual Cost* proyek menjadi \$29,000. |
-| **5. Staf mencoba buat PO baru untuk Kabel senilai \$25,000** | - | - | - | *Akan menjadi \$54,000 (> \$50,000)* | ❌ **DITOLAK (ERROR BP604)!** | Karena sisa budget hanya \$21,000 sedangkan PO baru meminta \$25,000 (kurang \$4,000), **AVAC memunculkan pesan Error Merah (`Budget Exceeded by $4,000`)** dan PO tidak bisa disimpan! |
+| **5. Staf mencoba buat PO baru untuk Kabel senilai \$25,000** | - | - | - | *Akan menjadi \$54,000 (> \$50,000)* | Contoh penolakan | Kekurangan \$4,000; sistem hanya menolak jika respons error untuk transaksi dan ambang batas tersebut dikonfigurasi. |
 
 ### 4.3 Bagaimana Jika Terjadi Error *Budget Exceeded* di Lapangan?
-Jika PO diblokir oleh AVAC karena anggaran kurang, ada 3 solusi resmi di SAP PS:
-1. **Tambah Anggaran (*Budget Supplement* — T-Code `CJ37`):** Jika Direksi menyetujui penambahan plafon anggaran proyek dari cadangan perusahaan.
-2. **Geser Anggaran dari WBS Lain (*Budget Transfer* — T-Code `CJ34`):** Memindahkan sisa anggaran dari WBS pekerjaan sipil yang hemat ke WBS elektrikal yang kekurangan dana.
-3. **Kurangi Nilai/Kuantitas PO (`ME21N`):** Menegosiasikan ulang harga atau kuantitas barang agar masuk di bawah sisa budget yang tersedia.
+1. Periksa actual, open commitment, profil dan toleransi sebelum mengubah dokumen.
+2. Jika disetujui, lakukan supplement, transfer atau return melalui fungsi budget update classic PS. Periksa label transaksi dan arah sender/receiver di IMG sistem: kode `CJ34`/`CJ35` tidak dipetakan di sini karena sumber primer yang dibaca belum menetapkan pemetaan itu. Release tambahan bila profil memerlukannya.
+3. Alternatif bisnis: negosiasikan ulang nilai atau kuantitas PO.
 
 ---
 
 ## 5. Period-End Settlement (`CJ88`) & Kapitalisasi Proyek ke Aset Tetap (FI-AA)
 
-Selama proyek investasi (CAPEX) berjalan, seluruh pembelian material dan jasa (`MIGO`, `ML81N`, `FB60`) berkumpul sebagai biaya di dalam WBS Element. Padahal menurut standar akuntansi (PSAK 16 / IAS 16), pengeluaran untuk membangun pabrik/gardu induk **bukanlah beban rugi-laba bulan tersebut**, melainkan harus dikapitalisasi ke Neraca sebagai **Aset Dalam Penyelesaian (*Asset Under Construction / AuC*)**.
+Biaya investasi yang memenuhi kriteria kapitalisasi dapat dikumpulkan di WBS lalu diselesaikan ke AuC dan aset final. Kelayakan akuntansi, receiver, timing dan jenis settlement harus ditentukan kebijakan perusahaan serta konfigurasi; tidak semua biaya proyek otomatis dapat dikapitalisasi.
 
-Proses memindahkan biaya dari WBS PS ke modul FI-AA dilakukan setiap akhir bulan menggunakan T-Code **`CJ88` (Actual Settlement: Project/WBS)**.
+`CJ88` dapat menjalankan settlement WBS individual dalam classic PS; periodic dan final settlement harus mengikuti investment profile, settlement rule dan proses aset yang digunakan.
+
+Rujukan SAP Learning S/4HANA: [settlement rule, investment measure dan AuC](https://learning.sap.com/courses/discovering-the-basics-of-sap-s-4hana-project-system/executing-period-end-closing-activities_a362398a-e47c-45fd-b16f-39bce45fb32f).
 
 ```mermaid
 flowchart LR
@@ -163,14 +159,14 @@ $$\begin{aligned}
 #### B. Jurnal Tahap 2: Kapitalisasi Akhir AuC ke Aset Tetap Final (`CJ88` Full Settlement / `AIBU`)
 Ketika proyek selesai 100% dan berita acara komisioning ditandatangani:
 1. Buat Master Aset Tetap Final di **`AS01`** (misal Aset Mesin Trafo `3000088-0` dan Aset Bangunan Gardu `2000045-0`).
-2. Masukkan aturan pembagian (*Settlement Rule* `CJB2` di WBS atau `AIAB` pada AuC): 70% ke Aset Mesin `3000088-0` dan 30% ke Aset Bangunan `2000045-0`.
-3. Eksekusi Settlement Akhir (`CJ88` *Full Settlement* atau `AIBU`):
+2. Tetapkan aturan distribusi final yang sesuai proses WBS investment measure atau, untuk AuC line-item settlement yang relevan, gunakan `AIAB`.
+3. Eksekusi settlement final melalui proses yang dikonfigurasi (`CJ88` atau `AIBU` sesuai jenis AuC):
    $$\begin{aligned}
    \text{Dr. } & \text{Aset Tetap Mesin & Trafo } (\text{Asset } 3000088\text{-}0 \rightarrow \text{G/L } 121030, \text{ PKey } 70) \quad \$70,000 \\
    \text{Dr. } & \text{Aset Tetap Bangunan Gardu } (\text{Asset } 2000045\text{-}0 \rightarrow \text{G/L } 121020, \text{ PKey } 70) \quad \$30,000 \\
    \text{Cr. } & \text{Aset Dalam Penyelesaian / AuC } (\text{Asset } 8000012\text{-}0 \rightarrow \text{G/L } 129010, \text{ PKey } 75) \quad \$100,000
    \end{aligned}$$
-* **Hasil Akhir:** Saldo AuC menjadi **\$0**, dan kedua aset tetap final mulai disusutkan setiap bulan melalui T-Code **`AFAB`**!
+* **Hasil contoh:** AuC menjadi \$0 setelah seluruh nilai memenuhi syarat dialokasikan. Awal penyusutan aset final ditentukan asset value date, depreciation key, period control dan konfigurasi, bukan semata-mata pelaksanaan settlement.
 
 ---
 
