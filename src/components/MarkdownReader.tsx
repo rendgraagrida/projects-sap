@@ -36,7 +36,15 @@ function MermaidDiagram({ source }: { source: string }) {
       return mermaid;
     });
     void mermaidLibrary.then(mermaid => mermaid.render(id, source)).then(result => {
-      if (active) setImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(result.svg)}`);
+      if (active) {
+        const naturalWidthMatch = /max-width:\s*([\d.]+)px/.exec(result.svg) || /viewBox="[\d.\s-]+\s+([\d.]+)\s+[\d.]+"/.exec(result.svg);
+        const naturalWidth = naturalWidthMatch ? naturalWidthMatch[1] : null;
+        let svg = result.svg;
+        if (naturalWidth) {
+          svg = svg.replace(/\bwidth="100%"/g, `width="${naturalWidth}px"`);
+        }
+        setImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
+      }
     }).catch(() => { if (active) setError('Diagram tidak dapat dirender. Periksa sumber diagram berikut.'); });
     return () => { active = false; };
   }, [id, source]);

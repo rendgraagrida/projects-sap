@@ -30,16 +30,42 @@ Proyek ini memiliki 2 paket pekerjaan utama (WBS Element):
 
 ```mermaid
 flowchart TD
-    S1["Langkah 1 (PS): Buat WBS & Network\nT-Code: CJ20N (Status: CRTD)"] --> S2["Langkah 2 (PS): Input & Release Budget $100k\nT-Code: CJ30 & CJ32 (AVAC Aktif)"]
-    S2 --> S3["Langkah 3 (PS ➔ FI-AA): Release WBS\nT-Code: CJ20N (Status: REL)\nAuC dibuat jika profile dan prasyarat terpenuhi"]
-    S3 --> S4["Langkah 4 (PS ➔ MM): Buat PR & PO material fiber ($50k) & jasa deployment ($35k)\nT-Code: ME51N ➔ ME21N ➔ ME29N\n⚡ Potong Sisa Budget jadi PO Commitment!"]
-    S4 --> S5["Langkah 5 (FI-AP): Bayar Uang Muka (DP 20%) ke vendor deployment\nT-Code: F-47 ➔ F-48 ($7,000)\n⚡ Jurnal Special G/L 'A'"]
-    S5 --> S6["Langkah 6 (MM-IM): Terima material fiber di project stock & pakai ke site\nT-Code: MIGO 101 Q ➔ MIGO 221 Q ($50,000)\n+ Ambil material pendukung dari stok umum ($5,000)"]
-    S6 --> S7["Langkah 7 (MM-SRV): Serah terima jasa instalasi dan commissioning\nT-Code: ML81N ($35,000)"]
-    S7 --> S8["Langkah 8 (MM-LIV & FI-AP): Verifikasi faktur vendor, potong DP & bayar lunas\nT-Code: MIRO ➔ F-54 ➔ F110"]
-    S8 --> S9["Langkah 9 (PS ➔ FI-AA): Settlement periodik WBS ke AuC\nT-Code: CJ88 (Periodic) — $90,000 masuk ke AuC"]
-    S9 --> S10["Langkah 10 (PS ➔ FI-AA): Deployment selesai, kapitalisasi AuC ke aset tetap & penyusutan\nT-Code: AS01 ➔ CJ88 (Full) ➔ AFAB"]
+    subgraph P1["📁 Fase 1: Inisiasi & Anggaran (SAP PS)"]
+        direction LR
+        S1["Langkah 1: WBS & Network<br/>CJ20N · Status CRTD"] --> S2["Langkah 2: Pagu Budget<br/>CJ30/CJ32 · $100k (AVAC)"] --> S3["Langkah 3: Release WBS<br/>CJ20N · Status REL & AuC"]
+    end
+    subgraph P2["📦 Fase 2: Pengadaan & Uang Muka (MM & FI-AP)"]
+        direction LR
+        S4["Langkah 4: PO Fiber & Jasa<br/>ME21N/ME29N · $85k"] --> S5["Langkah 5: Uang Muka 20%<br/>F-47/F-48 · DP $7,000"]
+    end
+    subgraph P3["🚚 Fase 3: Logistik & Serah Terima (MM-IM & SRV)"]
+        direction LR
+        S6["Langkah 6: Goods Movement<br/>MIGO 101Q/221Q/221 · $55k"] --> S7["Langkah 7: BAST Jasa 100%<br/>ML81N · SES $35,000"]
+    end
+    subgraph P4["💰 Fase 4: Faktur, Settlement & Kapitalisasi (FI & AA)"]
+        direction LR
+        S8["Langkah 8: Faktur & Lunas<br/>MIRO / F-54 / F110"] --> S9["Langkah 9: Settlement AuC<br/>CJ88 · Periodic $90,000"] --> S10["Langkah 10: Aset Final & Susut<br/>CJ88 FUL / AFAB · TECO"]
+    end
+
+    P1 ==> P2
+    P2 ==> P3
+    P3 ==> P4
 ```
+
+### Tabel Ringkasan Alur 10 Langkah Terintegrasi
+
+| Langkah | Fase & Modul | T-Code | Dokumen & Aktivitas | Dampak Sistem & Status |
+| :---: | :--- | :--- | :--- | :--- |
+| **1** | Inisiasi (PS) | `CJ20N` | Project & WBS Element | Header `PROJ` & `PRPS` (Status: `CRTD`) |
+| **2** | Anggaran (PS) | `CJ30` / `CJ32` | Original Budget & Release | Plafon `$100k` aktif di `BPGE`/`BPJA` (AVAC) |
+| **3** | Otorisasi (PS/AA) | `CJ20N` | Status Release & Auto-AuC | Status `REL`, master AuC terbentuk di `ANLA` |
+| **4** | Pengadaan (MM) | `ME21N` / `ME29N` | PO Material Q & PO Jasa P/D | Komitmen PO `$85k` mengikat budget |
+| **5** | Uang Muka (FI-AP) | `F-47` ➔ `F-48` | Down Payment Jasa 20% | Kas bank berkurang `$7,000` (Sp. G/L A) |
+| **6** | Logistik (MM-IM) | `MIGO 101Q/221Q/221` | Penerimaan & Pemakaian Material | Stok Q `$50k` + stok umum `$5k` ➔ WBS |
+| **7** | BAST Jasa (MM-SRV)| `ML81N` | Service Entry Sheet 100% | Beban jasa `$35k` diakui aktual di WBS |
+| **8** | Faktur (LIV/AP) | `MIRO` ➔ `F-54` ➔ `F110`| Invoice, Clearing DP, & Pelunasan | GR/IR tuntas, utang lunas via bank `$86,650` |
+| **9** | Settlement (PS/AA)| `CJ88` | Settlement Periodik Bulanan | Biaya aktual `$90k` berpindah ke akun AuC |
+| **10**| Kapitalisasi (AA) | `CJ88 FUL` ➔ `AFAB` | Aset Tetap Final & Penyusutan | AuC `$0`, Aset Tetap aktif & susut `$604.16` |
 
 ---
 
