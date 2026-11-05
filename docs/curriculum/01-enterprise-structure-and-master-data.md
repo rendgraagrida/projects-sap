@@ -23,6 +23,7 @@ Memahami perbedaan antara SAP ECC 6.0 dan SAP S/4HANA sangat penting karena di l
 | **Tabel Pergerakan Barang (MM)** | `MKPF` dan `MSEG` untuk dokumen material. | `MATDOC` menjadi penyimpanan utama dokumen material; akses lama dan agregasi stok bergantung pada mekanisme kompatibilitas dan rilis. |
 | **Penilaian Material (Material Valuation)** | Material Ledger opsional. | Material Ledger wajib untuk valuasi material; **actual costing opsional**, bukan otomatis aktif. |
 | **Integrasi CO Cost Element** | Cost element dikelola terpisah di CO. | Cost element dikelola sebagai tipe G/L account; ketersediaan transaksi lama bergantung rilis. |
+
 Rujukan SAP Learning untuk S/4HANA: [Material Ledger dan actual costing](https://learning.sap.com/courses/product-cost-planning-in-sap-s-4hana/describing-material-ledger); [dokumen FI, BSEG dan Universal Journal](https://learning.sap.com/courses/configuring-additional-settings-in-financial-accounting-in-sap-s-4hana/executing-data-archiving-for-specific-fi-objects). Rujukan ini tidak menetapkan ketersediaan semua transaksi untuk setiap edisi.
 
 ### 1.2 Pintasan Navigasi Penting di SAP GUI (Command Field)
