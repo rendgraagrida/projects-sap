@@ -107,11 +107,11 @@ flowchart TD
 * **WBS Element:** `P-2026-TINF01.01` (G/L Account `510020` diasumsikan ditentukan dalam account assignment).
 
 #### 📊 Dampak pada Tabel Kontrol Anggaran PS (`S_ALR_87013558`) Setelah Langkah 4:
-| WBS Element | Released Budget | PO Commitment | Actual Cost | Total Assigned | Sisa Available Budget |
+| WBS Element | Released | Commitment | Actual | Assigned | Available |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **`P-2026-TINF01.01` (Site & deployment)** | \$40,000 | **\$35,000** | \$0 | \$35,000 | **\$5,000** |
-| **`P-2026-TINF01.02` (Fiber & network material)** | \$60,000 | **\$50,000** | \$0 | \$50,000 | **\$10,000** |
-| **TOTAL PROYEK** | **\$100,000** | **\$85,000** | **\$0** | **\$85,000** | **\$15,000** |
+| `P-2026-TINF01.01`<br><small>Site & deployment</small> | $40,000 | **$35,000** | $0 | $35,000 | **$5,000** |
+| `P-2026-TINF01.02`<br><small>Fiber & network material</small> | $60,000 | **$50,000** | $0 | $50,000 | **$10,000** |
+| **TOTAL PROYEK** | **$100,000** | **$85,000** | **$0** | **$85,000** | **$15,000** |
 
 
 * **Contoh data terkait:** `EKKO`, `EKPO`, `EKKN`, dan untuk jasa klasik `ESLH`/`ESLL`. Representasi commitment seperti `COOI` bergantung produk dan proses.
@@ -180,11 +180,11 @@ Selain material fiber yang dibeli khusus, tim proyek mengambil material pendukun
   ```
 
 #### 📊 Status Budget Proyek PS (`S_ALR_87013558`) Setelah Langkah 6 & 7:
-| WBS Element | Released Budget | PO Commitment | Actual Cost | Total Assigned | Sisa Available Budget |
+| WBS Element | Released | Commitment | Actual | Assigned | Available |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **`P-2026-TINF01.01` (Site & deployment)** | \$40,000 | **\$0** *(Sudah jadi Actual)* | **\$35,000** | \$35,000 | **\$5,000** |
-| **`P-2026-TINF01.02` (Fiber & network material)** | \$60,000 | **\$0** *(Sudah jadi Actual)* | **\$55,000** | \$55,000 | **\$5,000** |
-| **TOTAL PROYEK** | **\$100,000** | **\$0** | **\$90,000** | **\$90,000** | **\$10,000** *(Hemat \$10k!)* |
+| `P-2026-TINF01.01`<br><small>Site & deployment</small> | $40,000 | **$0** *(Actual)* | **$35,000** | $35,000 | **$5,000** |
+| `P-2026-TINF01.02`<br><small>Fiber & network material</small> | $60,000 | **$0** *(Actual)* | **$55,000** | $55,000 | **$5,000** |
+| **TOTAL PROYEK** | **$100,000** | **$0** | **$90,000** | **$90,000** | **$10,000** |
 
 ---
 

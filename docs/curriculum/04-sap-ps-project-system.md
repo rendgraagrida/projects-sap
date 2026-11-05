@@ -148,25 +148,25 @@ flowchart LR
 ### Jurnal Akuntansi Saat Settlement `CJ88` Dijalankan:
 
 #### A. Jurnal Tahap 1: Settlement Bulanan WBS ke AuC (`CJ88` Processing Type `1 - Automatic`)
-$$\begin{aligned}
-\text{Dr. } & \text{Aset Dalam Penyelesaian / AuC } (\text{Asset } 8000012\text{-}0 \rightarrow \text{G/L } 129010, \text{ PKey } 70) \quad \$100,000 \\
-\text{Cr. } & \text{Akun Settlement Proyek CAPEX } (\text{G/L } 599010 + \text{WBS Element}, \text{ PKey } 50) \quad \$100,000
-\end{aligned}$$
+```text
+Dr. [PKey 70] Aset Dalam Penyelesaian / AuC (8000012-0 -> G/L 129010)     $100,000
+    Cr. [PKey 50] Akun Settlement Proyek CAPEX (G/L 599010 + WBS Element) $100,000
+```
 * **Hasil di Laporan Keuangan Bulan Berjalan:**
-  - Di Laporan Laba Rugi (P&L): Biaya proyek (\$100,000 Debet) dikurangi Akun Settlement Proyek (\$100,000 Kredit) = **\$0 (Netral di Laba Rugi)**.
-  - Di Laporan Neraca (*Balance Sheet*): Muncul aset baru **AuC senilai \$100,000**.
+  - Di Laporan Laba Rugi (P&L): Biaya proyek (USD 100,000 Debet) dikurangi Akun Settlement Proyek (USD 100,000 Kredit) = **USD 0 (Netral di Laba Rugi)**.
+  - Di Laporan Neraca (*Balance Sheet*): Muncul aset baru **AuC senilai USD 100,000**.
 
 #### B. Jurnal Tahap 2: Kapitalisasi Akhir AuC ke Aset Tetap Final (`CJ88` Full Settlement / `AIBU`)
 Ketika proyek selesai 100% dan berita acara komisioning ditandatangani:
 1. Buat Master Aset Tetap Final di **`AS01`** (misal Aset Mesin Trafo `3000088-0` dan Aset Bangunan Gardu `2000045-0`).
 2. Tetapkan aturan distribusi final yang sesuai proses WBS investment measure atau, untuk AuC line-item settlement yang relevan, gunakan `AIAB`.
 3. Eksekusi settlement final melalui proses yang dikonfigurasi (`CJ88` atau `AIBU` sesuai jenis AuC):
-   $$\begin{aligned}
-   \text{Dr. } & \text{Aset Tetap Mesin & Trafo } (\text{Asset } 3000088\text{-}0 \rightarrow \text{G/L } 121030, \text{ PKey } 70) \quad \$70,000 \\
-   \text{Dr. } & \text{Aset Tetap Bangunan Gardu } (\text{Asset } 2000045\text{-}0 \rightarrow \text{G/L } 121020, \text{ PKey } 70) \quad \$30,000 \\
-   \text{Cr. } & \text{Aset Dalam Penyelesaian / AuC } (\text{Asset } 8000012\text{-}0 \rightarrow \text{G/L } 129010, \text{ PKey } 75) \quad \$100,000
-   \end{aligned}$$
-* **Hasil contoh:** AuC menjadi \$0 setelah seluruh nilai memenuhi syarat dialokasikan. Awal penyusutan aset final ditentukan asset value date, depreciation key, period control dan konfigurasi, bukan semata-mata pelaksanaan settlement.
+   ```text
+   Dr. [PKey 70] Aset Tetap Mesin & Trafo (3000088-0 -> G/L 121030)       $70,000
+   Dr. [PKey 70] Aset Tetap Bangunan Gardu (2000045-0 -> G/L 121020)     $30,000
+       Cr. [PKey 75] Aset Dalam Penyelesaian / AuC (8000012-0 -> 129010)  $100,000
+   ```
+* **Hasil contoh:** AuC menjadi USD 0 setelah seluruh nilai memenuhi syarat dialokasikan. Awal penyusutan aset final ditentukan asset value date, depreciation key, period control dan konfigurasi, bukan semata-mata pelaksanaan settlement.
 
 ---
 

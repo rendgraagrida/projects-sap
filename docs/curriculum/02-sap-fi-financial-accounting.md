@@ -177,19 +177,18 @@ Digunakan untuk membeli aset yang langsung siap pakai (misal: beli 5 unit Laptop
 1. Buat Master Aset di **`AS01`** (misal menghasilkan nomor aset `30000045-0`).
 2. Buat PO di **`ME21N`** dengan memilih **Account Assignment Category = `A` (Asset)** dan memasukkan nomor aset `30000045-0`.
 3. Saat barang tiba dan diposting **`MIGO` (Movement 101)** (jika *Valuated GR* aktif):
-   $$\begin{aligned}
-   \text{Dr. } & \text{Aset Tetap Mesin } (30000045\text{-}0 \rightarrow \text{G/L } 121030, \text{ PKey } 70) \\
-   \text{Cr. } & \text{GR/IR Clearing Account } (\text{G/L } 210090, \text{ PKey } 50)
-   \end{aligned}$$
+   ```text
+   Dr. [PKey 70] Aset Tetap Mesin (30000045-0 -> G/L 121030)
+       Cr. [PKey 50] GR/IR Clearing Account (G/L 210090)
+   ```
    Tanggal kapitalisasi dan mulai penyusutan ditentukan oleh asset value date, depreciation key, period control, area, dan konfigurasi; penerimaan tidak otomatis berarti penyusutan langsung dimulai.
 
 #### Cara 2: Pembelian Langsung via FI-AP Tanpa PO (`F-90`)
-$$\begin{aligned}
-\text{Dr. } & \text{Aset Tetap } (\text{PKey } 70, \text{ Transaction Type } 100) \\
-\text{Dr. } & \text{PPN Masukan } (\text{PKey } 40) \\
-\text{Cr. } & \text{Vendor / Hutang Usaha } (\text{PKey } 31)
-\end{aligned}$$
-
+```text
+Dr. [PKey 70] Aset Tetap (Transaction Type 100)
+Dr. [PKey 40] PPN Masukan
+    Cr. [PKey 31] Vendor / Hutang Usaha
+```
 #### Cara 3: Kapitalisasi Bertahap dari Proyek SAP PS (`CJ88` $\rightarrow$ `AIAB` $\rightarrow$ `AIBU`)
 Digunakan untuk proyek pembangunan jangka panjang (misal: membangun pabrik selama 6 bulan). Selama bulan 1 s/d 5, biaya dikumpulkan di WBS PS dan di-*settle* tiap akhir bulan ke **AuC (Asset Under Construction)**. Setelah pabrik rampung 100% di bulan ke-6, nilai AuC dipindahkan ke Aset Tetap Gedung & Mesin final. *(Akan dibahas tuntas dengan angka di Modul 04 & Modul 05).*
 

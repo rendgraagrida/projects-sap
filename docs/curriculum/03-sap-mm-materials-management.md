@@ -87,11 +87,10 @@ Untuk jasa klasik pada ECC atau S/4HANA on-premise/private yang mendukung Extern
 3. **Setujui (Accept/Release) SES di `ML81N`:**
    - Klik ikon **Bendera Hijau (*Release/Accept*)** lalu klik **Save**.
    - **Di belakang layar:** Acceptance dapat membuat goods receipt dan, untuk GR bernilai, jurnal seperti contoh berikut; ini bukan operasi manual `MIGO` dan hasil bergantung PO/konfigurasi:
-     $$\begin{aligned}
-     \text{Dr. } & \text{Biaya Jasa Proyek } (\text{G/L } 510020 + \text{WBS Element}) \\
-     \text{Cr. } & \text{GR/IR Clearing Services } (\text{G/L } 210095 - \text{WRX})
-     \end{aligned}$$
-
+     ```text
+     Dr. G/L 510020 Biaya Jasa Proyek (WBS Element)
+         Cr. G/L 210095 GR/IR Clearing Services (OBYC: WRX)
+     ```
 ---
 
 ## 4. Inventory Management (`MIGO`) & Master Movement Types
