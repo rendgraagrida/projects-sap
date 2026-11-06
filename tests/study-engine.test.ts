@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { buildDictionaries, buildStudyIndex, dictionaryCodes, evaluateQuiz, parseCurriculum, searchStudy, type DictionaryEntry, type Module } from '../src/lib/study-engine';
+import { buildDictionaries, buildStudyIndex, dictionaryCodes, evaluateQuiz, parseCurriculum, searchStudy, type DictionaryEntry, type Module, type Quiz } from '../src/lib/study-engine';
 import { dictionaries, modules, studyIndex } from '../src/data/curriculum';
 import { MarkdownReader } from '../src/components/MarkdownReader';
 
@@ -51,6 +51,19 @@ describe('Quiz answer boundaries', () => {
     const question = { id: 'q', title: 'Budget', question: 'Choose', answer: 'Explanation', options: ['a', 'b', 'c', 'd'], correct: 2 };
     expect([0, 1, 2, 3].map(selected => evaluateQuiz(question, selected))).toEqual([false, false, true, false]);
     for (const selected of [-1, 4, 2.5, NaN, Infinity]) expect(evaluateQuiz(question, selected)).toBe(false);
+  });
+  test('builds all 10 comprehensive telco study cases covering MM, PS, FI, and SD with valid answers', () => {
+    const { buildQuiz } = require('../src/lib/study-engine');
+    const allQuiz = buildQuiz(modules);
+    expect(allQuiz).toHaveLength(10);
+    for (const q of allQuiz) {
+      expect(q.options).toHaveLength(4);
+      expect(q.correct).toBeGreaterThanOrEqual(0);
+      expect(q.correct).toBeLessThan(4);
+      expect(evaluateQuiz(q, q.correct)).toBe(true);
+    }
+    const ids = allQuiz.map((q: Quiz) => q.id);
+    expect(ids).toEqual(['case-01', 'case-02', 'case-03', 'case-04', 'case-05', 'case-06', 'case-07', 'case-08', 'case-09', 'case-10']);
   });
 });
 

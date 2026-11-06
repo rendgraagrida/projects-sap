@@ -200,7 +200,7 @@ erDiagram
 
 ## 5. Bank Soal Latihan & Studi Kasus Wawancara (Dengan Pembahasan)
 
-Lima skenario edukasi berikut bukan soal atau simulasi sertifikasi resmi SAP.
+Sepuluh skenario studi kasus edukasi berikut mencakup 4 modul terpadu SAP (MM, PS, FI, SD) dalam industri telekomunikasi & infrastruktur (InfraNexia / MetroNexia).
 
 ---
 
@@ -290,6 +290,111 @@ Proyek pembangunan gedung pabrik sudah berjalan 3 bulan dan setiap akhir bulan t
   Bila aset siap digunakan dan memenuhi kebijakan, tetapkan aset final serta settlement sesuai proses; tanggal mulai dan nilai penyusutan ditentukan asset value date, key, period control, area dan konfigurasi, bukan hanya status atau `CJ88`.
 </details>
 
+---
+
+### ❓ Kasus 6: Kegagalan Rilis Faktur `VF01` ke FI Akibat Error Account Determination (`VKOA`)
+**Pertanyaan:**  
+Tim billing InfraNexia membuat faktur penjualan layanan internet MetroNexia via `VF01` dengan nomor faktur `9000000001`. Namun status dokumen billing menunjukkan *"Posting status: Error in accounting interface"* dan nomor dokumen akuntansi FI tidak terbentuk. Pesan error di log menyatakan: *"Account determination for account key ERL not possible in chart of accounts CAID"*. Mengapa error ini terjadi dan bagaimana langkah perbaikannya?
+
+<details>
+<summary><b>👉 Klik untuk Melihat Jawaban & Pembahasan Konsultan</b></summary>
+
+* **Analisis Penyebab:**  
+  Di SAP SD, saat faktur `VF01` disimpan, sistem mencari akun pendapatan otomatis via T-Code **`VKOA`** berdasarkan kombinasi: Application `V`, Chart of Accounts `CAID`, Sales Org `1000`, Customer Account Assignment Group (`KTGRD` dari master BP role `FLCU01`), Material Account Assignment Group (`KTGRM` dari master material view *Sales: sales org. 2*), dan Account Key `ERL`. Jika material `MAT-MN-MRC` baru dibuat tetapi field `KTGRM` belum diisi, atau kombinasi tersebut belum dipetakan ke akun pendapatan `410010` di `VKOA`, maka interface akuntansi akan menolak rilis faktur.
+* **Solusi Step-by-Step:**  
+  1. Buka master material di `MM02` view *Sales: sales org. 2*, pastikan field **Acct assignment grp (`MVKE-KTGRM`)** telah diisi (contoh: `01` Pendapatan Internet).
+  2. Buka master Business Partner customer di `BP` role `FLCU01`, pastikan field `KTGRD` terisi (contoh: `01` Domestik).
+  3. Buka konfigurasi **`VKOA`** (Tabel 001/002), lengkapi entri untuk Chart of Accounts `CAID`, Sales Org `1000`, `KTGRD 01`, `KTGRM 01`, Account Key `ERL` mengarah ke G/L `410010`.
+  4. Buka kembali faktur di **`VF02`**, masukkan nomor faktur `9000000001`, lalu klik menu *Billing document $\rightarrow$ Release to accounting* (atau icon bendera hijau). Dokumen akuntansi piutang (Doc. Type `RV`) akan langsung terbentuk sukses.
+</details>
+
+---
+
+### ❓ Kasus 7: Penjualan Paket Internet dengan Prorata MRC & Penagihan Terpisah OTC
+**Pertanyaan:**  
+Pelanggan enterprise baru menandatangani kontrak paket MetroNexia 1 Gbps dengan biaya berlangganan **MRC \$5,000/bulan** dan biaya aktivasi/instalasi **OTC \$1,500 sekali bayar**. Layanan internet berhasil diaktivasi pada tanggal **16 November** (bulan memiliki 30 hari). Tim komersial ingin menagih OTC \$1,500 segera setelah aktivasi, sedangkan MRC bulan pertama hanya ditagih proporsional (prorata 15 hari). Bagaimana pemodelan item di Sales Order `VA01` dan bagaimana jadwal penagihannya diatur di SAP SD?
+
+<details>
+<summary><b>👉 Klik untuk Melihat Jawaban & Pembahasan Konsultan</b></summary>
+
+* **Analisis Penyebab:**  
+  Dalam industri telekomunikasi, biaya aktivasi (OTC) dan biaya sewa (MRC) memiliki karakteristik penagihan yang berbeda dan harus dipisahkan menjadi dua baris item pada Sales Order `VA01`:
+  - **Item 10: Material 2 MetroNexia MRC** menggunakan **Periodic Billing Plan (Type `02`)**. Sistem menghitung prorata dari tanggal aktif (16 Nov - 30 Nov = 15 hari aktif): $\frac{15}{30} \times \$5,000 = \$2,500$.
+  - **Item 20: Material 3 MetroNexia OTC** menggunakan **Milestone Billing Plan (Type `01`)** yang dikaitkan dengan penyelesaian commissioning aktivasi link.
+* **Solusi Step-by-Step:**  
+  1. Buat Sales Order `VA01` dengan tipe order `OR`/`ZOR`.
+  2. Pada Item 10 (MRC), pasang billing plan type `02` (Periodic), masukkan start date `16.11.2026`. Sistem secara otomatis memecah tanggal penagihan bulanan pada tabel `FPLT` dan menghitung nilai prorata \$2,500 untuk periode pertama, lalu \$5,000 untuk bulan-bulan penuh berikutnya.
+  3. Pada Item 20 (OTC), pasang milestone billing type `01` dengan trigger penyelesaian instalasi/aktivasi. Sebelum aktivasi selesai, pasang *Billing Block (`FA`)*.
+  4. Setelah link aktif dan BAST disetujui, lepaskan billing block pada Item 20, jalankan `VF01` untuk menerbitkan invoice OTC (\$1,500 + PPN 11%). Tagihan MRC diproses terpisah secara massal pada siklus penagihan bulanan via `VF04`.
+</details>
+
+---
+
+### ❓ Kasus 8: Selisih Harga PO vs Invoice (`MIRO`) saat Sebagian Stok Sudah Dipakai (Moving Average Price / V)
+**Pertanyaan:**  
+Gudang logistik InfraNexia menerima 10 unit modem router ONT via `MIGO 101` dengan harga PO **\$100/unit (Total \$1,000)**. Material menggunakan **Price Control `V` (Moving Average Price)**. Sebelum tagihan vendor datang, teknisi sudah mengambil 6 unit modem untuk dipasang ke pelanggan (`MIGO 201/221`), menyisakan **4 unit di gudang**. Dua minggu kemudian, faktur vendor (`MIRO`) datang dengan harga **\$110/unit (Total \$1,100, ada kenaikan \$100)**. Bagaimana jurnal `MIRO` dan mengapa selisih \$100 tersebut dipecah oleh SAP?
+
+<details>
+<summary><b>👉 Klik untuk Melihat Jawaban & Pembahasan Konsultan</b></summary>
+
+* **Analisis Penyebab:**  
+  Pada material dengan Price Control `V` (Moving Average Price), selisih kenaikan harga faktur hanya boleh dikapitalisasi ke nilai persediaan (`BSX`) **sepanjang stok fisik di gudang masih mencukupi untuk menyerap selisih tersebut (Stock Coverage Rule)**.
+  - Total selisih kenaikan harga = $\$1,100 - \$1,000 = +\$100$.
+  - Total stok yang diterima = 10 unit. Stok yang masih tersisa di gudang = 4 unit (Coverage = 40%).
+  - Porsi selisih yang diserap stok persediaan = $40\% \times \$100 = +\$40$ (menaikkan Moving Average Price material di tabel `MBEW`).
+  - Porsi selisih atas 6 unit yang sudah terlanjur dipakai = $60\% \times \$100 = +\$60$. Karena barangnya sudah tidak ada di gudang, selisih ini tidak boleh menambah nilai aset persediaan, melainkan harus dibebankan langsung ke akun Price Difference (`OBYC: PRD`).
+* **Solusi & Jurnal Akuntansi yang Terbentuk di `MIRO`:**  
+  ```text
+  (Debit)  [PK 86] 210090 GR/IR Clearing (OBYC: WRX)          : $1,000.00
+  (Debit)  [PK 89] 114010 Persediaan Modem ONT (OBYC: BSX)    :    $40.00  (40% sisa stok gudang)
+  (Debit)  [PK 40] 520010 Selisih Harga / Variance (OBYC: PRD):    $60.00  (60% unit terpakai)
+  (Kredit) [PK 31] 210010 Hutang Usaha Vendor (PKey 31)       : $1,100.00
+  ```
+</details>
+
+---
+
+### ❓ Kasus 9: Pelunasan Piutang Pelanggan (`F-28`) dengan Pemotongan Pajak PPh 23 (Withholding Tax)
+**Pertanyaan:**  
+Pelanggan enterprise melunasi tagihan internet MetroNexia sebesar **\$5,550** (termasuk PPN 11%). Namun uang yang masuk ke rekening bank InfraNexia hanya **\$5,450**. Pelanggan melampirkan Bukti Potong Pajak Penghasilan **PPh Pasal 23 sebesar 2% (\$100)** atas nilai jasa komersial. Jika staf kasir langsung mengkredit piutang sebesar \$5,450, faktur RV di modul FI-AR masih akan berstatus *Open Item* sebesar \$100 dan tidak bisa ter-clearing. Bagaimana prosedur pencatatan yang benar di `F-28`?
+
+<details>
+<summary><b>👉 Klik untuk Melihat Jawaban & Pembahasan Konsultan</b></summary>
+
+* **Analisis Penyebab:**  
+  Pemotongan pajak oleh pelanggan (*Withholding Tax by Customer / PPh 23*) adalah kewajiban hukum perpajakan di mana bukti potong tersebut merupakan uang muka pajak bagi InfraNexia yang dapat dikreditkan pada SPT Tahunan PPh Badan. Oleh karena itu, kasir tidak boleh mencatatnya sebagai diskon atau rugi selisih piutang, melainkan harus mendebet akun neraca **Uang Muka PPh Pasal 23 (Prepaid Tax / Aset Lancar)** dan mengkredit penuh faktur pelanggan agar *clearing* tuntas 100%.
+* **Solusi Step-by-Step di `F-28`:**  
+  1. Buka T-Code **`F-28` (Post Incoming Payments)**.
+  2. Masukkan penerimaan kas bank operasional sebesar \$5,450 pada baris bank (Account `111020`, Posting Key `50`).
+  3. Pilih open item faktur pelanggan bersangkutan sebesar \$5,550.
+  4. Tambahkan baris manual (*Additional Line Item*) debit ke akun **G/L `115030` (Uang Muka PPh Pasal 23 / Prepaid Tax)** sebesar \$100 dengan Posting Key `40`.
+  5. Jurnal akuntansi yang terbentuk (Doc. Type `DZ`):
+  ```text
+  (Debit)  [PK 50] 111020 Kas Bank Operasional              : $5,450.00
+  (Debit)  [PK 40] 115030 Uang Muka Pajak PPh 23 (Prepaid)  :   $100.00
+  (Kredit) [PK 15] 113010 Piutang Usaha Pelanggan (Clearing) : $5,550.00
+  ```
+  Dengan demikian, piutang pelanggan lunas 100% (saldo \$0) dan kas bank tercatat sesuai mutasi rekening koran.
+</details>
+
+---
+
+### ❓ Kasus 10: Error `BP 604` (Budget Exceeded) saat PO Material Jaringan & Prosedur Budget Transfer
+**Pertanyaan:**  
+Tim pengadaan sedang menerbitkan Purchase Order material kabel fiber optic (`ME21N`) senilai **\$25,000** yang dibebankan ke WBS `P-2026-TINF01.02` (Fiber Network Material). Saat tombol *Check / Save* ditekan, sistem memblokir dengan pesan error fatal: *"BP 604: In document item 00010 WBS Element P-2026-TINF01.02, budget for WBS was exceeded by 5,000.00 USD"*. Saat dicek di `S_ALR_87013558`, sisa available budget pada WBS tersebut hanya **\$20,000**. Namun pada WBS tetangga `P-2026-TINF01.01` (Site Preparation & Civil Works), terdapat sisa anggaran yang belum terpakai sebesar **\$15,000**. Bagaimana solusi legal di SAP PS agar PO dapat diterbitkan tanpa melanggar kontrol anggaran?
+
+<details>
+<summary><b>👉 Klik untuk Melihat Jawaban & Pembahasan Konsultan</b></summary>
+
+* **Analisis Penyebab:**  
+  Sistem Availability Control (AVAC) pada SAP PS memonitor plafon anggaran aktif di tabel `BPGE`/`BPJA`. Ketika nilai komitmen baru melampaui sisa *Available Budget*, sistem memblokir transaksi sesuai ambang batas toleransi (`OPTK` 100% Error). Konsultan tidak boleh mematikan AVAC via `CJBW` karena akan merusak tata kelola korporasi.
+* **Solusi Step-by-Step (Budget Transfer Antar-WBS):**  
+  Karena total anggaran proyek masih mencukupi, lakukan pemindahan alokasi pagu dana internal:
+  1. Buka T-Code **`CJ34` (Transfer Project Budget)**.
+  2. Masukkan Sender WBS: `P-2026-TINF01.01` (kurangi \$5,000) dan Receiver WBS: `P-2026-TINF01.02` (tambah \$5,000), masukkan Tahun Fiskal `2026`.
+  3. Buka T-Code **`CJ32` (Release Budget)**, cairkan penambahan anggaran \$5,000 pada WBS `.02` agar availability control mengenalinya sebagai dana yang siap dibelanjakan.
+  4. Jalankan ulang pembuatan PO di **`ME21N`**; sistem AVAC akan memverifikasi bahwa Available Budget WBS `.02` kini menjadi \$25,000 dan dokumen PO berhasil diterbitkan tanpa error `BP 604`.
+</details>
 ---
 
 > **Kembali ke Halaman Utama:** **[Indeks Kurikulum SAP Mastery Lab (`README.md`)](../../README.md)**

@@ -569,6 +569,13 @@ describe('SAP Database Table Projections (S/4HANA vs ECC 6.0)', () => {
     expect(s4Tables.BPGE).toBeDefined();
     expect(s4Tables.ANLA).toBeDefined();
     expect(s4Tables.ANLC).toBeDefined();
+
+    // SD Order-to-Cash tables
+    expect(s4Tables.VBAK).toBeDefined();
+    expect(s4Tables.VBAP).toBeDefined();
+    expect(s4Tables.VBRK).toBeDefined();
+    expect(s4Tables.VBRP).toBeDefined();
+    expect(s4Tables.VBAK[0].AUART).toBe('OR');
   });
 
   test('projects ECC 6.0 tables: MKPF and MSEG without ACDOCA or MATDOC', () => {

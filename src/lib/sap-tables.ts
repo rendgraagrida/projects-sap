@@ -19,6 +19,21 @@ export function projectSapTables(state: SapState, edition: SapEdition): Record<s
     ANLA: state.assets.map(a => ({ ANLN1: a.id, ANLKL: a.assetClass })),
     ANLC: state.assets.map(a => ({ ANLN1: a.id, APC: formatMoney(a.value), DEPRECIATION: formatMoney(a.depreciation) })),
     MSPR: state.caseAction >= 7 ? [{ MATNR: 'MAT-FO-48C', VALUE: formatMoney(state.stockQ) }] : [], MARD: [{ MATNR: 'MAT-ODF-01', VALUE: formatMoney(state.stockGeneral) }],
+    VBAK: [
+      { VBELN: '10000001', KUNNR: 'CUST-TELCO-01', AUART: 'OR', VKORG: '1000', VTWEG: '10', SPART: '01', NETWR: '$6,500.00' },
+    ],
+    VBAP: [
+      { VBELN: '10000001', POSNR: '000010', MATNR: 'MAT-MN-MRC', ARKTX: 'MetroNexia MRC 1Gbps', KWMENG: '1', NETWR: '$5,000.00' },
+      { VBELN: '10000001', POSNR: '000020', MATNR: 'MAT-MN-OTC', ARKTX: 'MetroNexia OTC Aktivasi', KWMENG: '1', NETWR: '$1,500.00' },
+    ],
+    VBRK: [
+      { VBELN: '90000001', FKART: 'F2', VKORG: '1000', KUNRG: 'CUST-TELCO-01', FKDAT: '20261116', NETWR: '$1,500.00' },
+      { VBELN: '90000002', FKART: 'F2', VKORG: '1000', KUNRG: 'CUST-TELCO-01', FKDAT: '20261130', NETWR: '$2,500.00' },
+    ],
+    VBRP: [
+      { VBELN: '90000001', POSNR: '000010', MATNR: 'MAT-MN-OTC', ARKTX: 'Biaya Aktivasi OTC', NETWR: '$1,500.00', VGBEL: '10000001' },
+      { VBELN: '90000002', POSNR: '000010', MATNR: 'MAT-MN-MRC', ARKTX: 'Akses Internet MRC Bulan 1', NETWR: '$2,500.00', VGBEL: '10000001' },
+    ],
   };
   if (edition === 'S4') {
     tables.ACDOCA = state.journals.flatMap(j => j.lines.map((l, i) => ({ BELNR: j.id, DOCLN: String(i + 1).padStart(6, '0'), RACCT: l.account, HSL: (l.side === 'DEBIT' ? '' : '-') + formatMoney(l.amount), WBS: l.wbs ?? '' })));
