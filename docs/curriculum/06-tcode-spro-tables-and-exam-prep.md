@@ -93,6 +93,20 @@ Rujukan: [SAP Fiori Apps Reference Library](https://fioriappslibrary.hana.ondema
 
 ---
 
+### 1.4 Modul SAP SD (Sales and Distribution)
+
+| Kategori | T-Code GUI | Nama Transaksi | Padanan SAP Fiori App (S/4HANA) |
+| :--- | :---: | :--- | :--- |
+| **Sales Order** | `VA01` / `VA02` / `VA03` | Create / Change / Display Sales Order | *Manage Sales Orders* |
+| **Quotation** | `VA21` / `VA22` / `VA23` | Create / Change / Display Sales Quotation | *Manage Sales Quotations* |
+| **Outbound Delivery** | `VL01N` / `VL02N` / `VL03N` | Create / Change / Display Outbound Delivery | *Manage Outbound Deliveries* |
+| **Billing Document** | `VF01` / `VF02` / `VF03` | Create / Change / Display Billing Document | *Create Billing Documents* |
+| **Billing Due List** | `VF04` / `VF06` | Maintain Billing Due List (Collective Billing Run) | *Create Billing Documents - Collective* |
+| **Pricing Conditions** | `VK11` / `VK12` / `VK13` | Create / Change / Display Condition Records (`PR00`, `MWST`) | *Manage Prices - Sales* |
+| **Customer-Material** | `VD51` / `VD52` / `VD53` | Maintain Customer-Material Info Record | *Customer-Material Info Records* |
+| **Monitoring SD** | `V.01` / `V.02` | List Incomplete Sales Orders / Quotations | *Sales Order Fulfillment Issues* |
+---
+
 ## 2. Peta Konfigurasi SPRO (IMG) untuk Konsultan
 
 Bagi konsultan fungsional, berikut adalah T-Code pintasan menuju layar konfigurasi **SPRO**:
@@ -113,6 +127,10 @@ Bagi konsultan fungsional, berikut adalah T-Code pintasan menuju layar konfigura
 | **MM Tolerance Limits** | `OMR6` | Batas toleransi selisih harga/kuantitas faktur `MIRO` (`PP`, `DQ`, `BD`). |
 | **PS Project & Coding** | `OPSJ` / `OPSA` / `OITA` | Coding Mask WBS, Project Profile, & Investment Profile (Auto-AuC). |
 | **PS Budget & AVAC** | `OPS9` / `OPTK` / `OKO7` | Budget Profile, Tolerance Limits AVAC (80% Warning, 100% Error), Settlement Profile. |
+| **SD Enterprise Structure** | `OX05` / `OVXI` / `OVXB` / `OVXG` | Definisi Sales Organization, Distribution Channel, Division, dan Sales Area. |
+| **SD Enterprise Assignment** | `OVX3` / `OVX6` | Hubungkan Sales Org ke Company Code & Sales Area ke Delivering Plant. |
+| **SD Revenue Determination** | **`VKOA`** | **Otomatisasi Jurnal SD-FI (`ERL`, `MWS`, `ERS`)** & Pemetaan Akun Pendapatan. |
+| **SD Pricing Procedure** | `V/06` / `V/08` / `OVKK` | Definisi Condition Types (`PR00`), Pricing Procedure, dan Penentuan Skema Harga. |
 
 ---
 
@@ -153,6 +171,14 @@ erDiagram
    - `BKPF` (accounting header), `BSEG` (entry-view FI items yang tetap relevan), `ACDOCA` (Universal Journal S/4HANA untuk item relevan per ledger). Tabel lama tertentu punya compatibility view; tidak semuanya dihapus atau identik.
    - `ANLA` (Asset Master Record), `ANLB` (Depreciation Terms), `ANLC` (Asset Value Fields).
 
+4. **Tabel Master & Transaksi SD:**
+   - `VBAK` (Sales Order Header — Key: `VBELN`, Customer `KUNNR`, Tipe Order `AUART`), `VBAP` (Sales Order Item — Key: `VBELN`, `POSNR`, Material `MATNR`, Plant `WERKS`).
+   - `VBKD` (Sales Business Data — Key: `VBELN`, `POSNR`, Terms of Payment, IncoTerms, pointer Billing Plan `FPLNR`).
+   - `FPLA` (Billing Plan Header — Key: `FPLNR`, Tipe Billing Plan: `02` Periodic MRC / `01` Milestone OTC), `FPLT` (Billing Plan Dates — Key: `FPLNR`, `FPLTR`, Jadwal Penagihan Bulanan).
+   - `LIKP` (Delivery Header — Key: `VBELN`), `LIPS` (Delivery Item — Key: `VBELN`, `POSNR`).
+   - `VBRK` (Billing Header — Key: `VBELN`, Payer `KUNRG`, Net Value `NETWR`, Document Condition `KNUMV`), `VBRP` (Billing Item — Key: `VBELN`, `POSNR`).
+   - `PRCD_ELEMENTS` (Tabel rincian kondisi harga di S/4HANA; di ECC memakai `KONV`).
+
 > **💡 Trik Teknis Penting (`OBJNR` & `PSPNR` di Tabel PS):**
 > `PRPS` memiliki WBS internal, external ID dan object number; contoh object number dapat dipakai untuk menelusuri objek terkait dalam laporan/tabel yang mendukungnya. Konversi identifier, key lengkap dan struktur penyimpanan bergantung produk/rilis.
 
@@ -168,6 +194,7 @@ erDiagram
 | **4** | **`Account determination (OBYC)`** | Posting MM. | Kombinasi account determination yang diperlukan tidak tersedia. | Periksa detail pesan, chart, valuation grouping, transaction key, modifier dan valuation class yang relevan; ubah `OBYC` hanya melalui kontrol konfigurasi. |
 | **5** | **`KI 235`: CO assignment** | Posting akun biaya. | Objek CO yang diperlukan tidak tersedia. | Isi objek yang valid atau tinjau default assignment yang disetujui. |
 | **6** | **`Project settlement rule`** | Settlement proyek. | Receiver, rule, profile, status atau prasyarat lain tidak sesuai. | Baca pesan sebenarnya; periksa `CJ20N`, settlement rule dan profile sebelum mengubah receiver. |
+| **7** | **`VKOA: Account determination`** | Rilis faktur `VF01` ke FI. | Akun G/L pendapatan (`ERL`) atau pajak (`MWS`) belum dipetakan untuk Sales Org / KTGRD / KTGRM. | Periksa konfigurasi `VKOA`, pastikan kombinasi Chart of Accounts `CAID`, Sales Org `1000`, Account Assignment Group Material `KTGRM`, dan Account Key `ERL` telah terisi akun pendapatan yang valid. |
 
 ---
 

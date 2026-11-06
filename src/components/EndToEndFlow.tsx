@@ -19,7 +19,8 @@ export function EndToEndFlow() {
     <section className="telco-context-card" aria-labelledby="telco-context-title">
       <div className="eyebrow">MODEL PRODUK DAN MATERIAL SAP</div>
       <h2 id="telco-context-title">{telcoContext.company} · {telcoContext.business}</h2>
-      <p>Brand penawaran: <strong>{telcoContext.brand}</strong>. MRC adalah biaya berulang bulanan; OTC adalah biaya satu kali. Root hanya menjadi grouping kecuali solusi target secara eksplisit menjadikannya sellable bundle.</p>
+      <p>Brand penawaran: <strong>{telcoContext.brand}</strong>. Menggunakan modul <strong>SAP SD (Sales and Distribution)</strong> untuk siklus Order-to-Cash (O2C). MRC adalah biaya berulang bulanan via Periodic Billing Plan (Type 02); OTC adalah biaya aktivasi satu kali via Milestone Billing Plan (Type 01). Otomatisasi jurnal pendapatan ke FI menggunakan <strong>VKOA</strong> (Doc. Type RV).</p>
+      <div className="detail-chip"><strong>Struktur Sales Area SD:</strong> {telcoContext.salesArea}</div>
       <div className="telco-material-tree">{telcoProductMaterials.map(material => <div className={`telco-material-node level-${material.level}`} key={material.materialId}>
         <div className="telco-material-head"><span className="telco-material-id">{material.materialId}</span><span className={`e2e-status ${statusClass[material.status]}`}>{material.billingType}</span></div>
         <strong>{material.name}</strong>

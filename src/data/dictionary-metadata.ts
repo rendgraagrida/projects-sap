@@ -565,4 +565,123 @@ export const dictionaryMetadata: Record<string, DictionaryMetaItem> = {
       "Penyebab & Solusi Error Settlement Proyek (CJ88):\n• Pesan Error: Transaksi settlement periodik atau kapitalisasi penuh gagal memproses alokasi biaya WBS ke objek penerima.\n• Analisis Log: Baca message class dan nomor pesan spesifik pada log eksekusi CJ88. Periksa aturan alokasi (Settlement Rule di CJ20N), objek receiver, Settlement Profile (OKO7), periode pembukuan, dan status sistem WBS.\n• Solusi Diagnosis: Kesalahan settlement cost element tidak identik dengan aturan alokasi yang hilang; pelihara settlement rule atau cost element hanya sesuai diagnosis konfigurasi yang tepat.",
     moduleId: "06",
   },
+  "VA01 / VA02 / VA03": {
+    explanation:
+      "Sales Order Management (SAP SD):\n• Fungsi Transaksi: VA01 membuat, VA02 mengubah, dan VA03 menampilkan Sales Order (pesanan penjualan pelanggan).\n• Struktur Dokumen: Header (VBAK), Item (VBAP), dan Business Data (VBKD).\n• Penerapan Telco: Digunakan InfraNexia untuk mencatat kontrak pesanan internet MetroNexia dengan baris item Material 2 MRC (tagihan bulanan berulang) dan Material 3 OTC (biaya aktivasi/instalasi).\n• Integrasi: Terhubung ke fungsi ketersediaan stok, kredit pelanggan, pricing condition, dan billing plan.",
+    moduleId: "07",
+    sources: [{ title: "SAP Learning — Executing Sales Order Management", url: "https://learning.sap.com/courses/exploring-sap-s-4hana-sales-essentials/executing-sales-order-management_cad9dfbe-bafc-4ed9-ac2e-6fd8422430e4" }],
+  },
+  "VA21 / VA22 / VA23": {
+    explanation:
+      "Sales Quotation (Penawaran Harga Resmi Pelanggan):\n• Fungsi Transaksi: VA21 membuat, VA22 mengubah, dan VA23 menampilkan Quotation resmi kepada calon pelanggan enterprise.\n• Masa Berlaku: Menyimpan validitas penawaran tarif harga internet (Valid From / Valid To) dan syarat komersial.\n• Konversi Dokumen: Quotation yang disetujui pelanggan dapat dikonversi menjadi Sales Order (VA01) dengan referensi dokumen lengkap.",
+    moduleId: "07",
+  },
+  "VL01N / VL02N / VL03N": {
+    explanation:
+      "Outbound Delivery (Pengiriman Logistik Penjualan):\n• Fungsi Transaksi: VL01N membuat dengan referensi Sales Order, VL02N mengubah/posting goods issue, VL03N menampilkan dokumen delivery.\n• Peran Telco: Digunakan saat ada pengiriman perangkat fisik (ONT / CPE router / drop cable) ke site pelanggan; Post Goods Issue (PGI Movement 601) memotong stok gudang MM.\n• Batas Layanan Jasa: Untuk layanan murni jasa/bandwidth tanpa perangkat fisik, delivery dapat dilewati sesuai konfigurasi item category.",
+    moduleId: "07",
+  },
+  "VF01 / VF02 / VF03": {
+    explanation:
+      "Billing Document (Faktur Penjualan SD):\n• Fungsi Transaksi: VF01 membuat faktur tagihan pelanggan mengacu pada Sales Order atau Delivery; VF02 mengubah/rilis ke FI; VF03 menampilkan faktur.\n• Otomatisasi Akuntansi: Menyimpan data header di VBRK dan item di VBRP; saat disimpan, sistem otomatis memicu pembuatan dokumen akuntansi piutang (Document Type RV di FI-AR).\n• Penentuan Akun: Akun pendapatan dan pajak ditentukan secara otomatis oleh konfigurasi VKOA.",
+    moduleId: "07",
+    sources: [{ title: "SAP Learning — Billing Process and Integration to SAP S/4HANA Finance", url: "https://learning.sap.com/courses/exploring-sap-s-4hana-sales-essentials/executing-the-billing-process-and-the-integration-to-sap-s-4hana-finance_e2dd5db3-73c3-4cda-8ad5-1e7f39f04fba" }],
+  },
+  "VF04 / VF06": {
+    explanation:
+      "Maintain Billing Due List (Collective Billing Run):\n• Fungsi Transaksi: Memproses penagihan massal secara otomatis untuk seluruh order dan delivery yang sudah jatuh tempo penagihan.\n• Penerapan Telco MRC: Sangat penting bagi tim operasional InfraNexia untuk menjalankan eksekusi penagihan berkala bulanan (Periodic Billing Run) atas seluruh kontrak MetroNexia aktif.",
+    moduleId: "07",
+  },
+  "VK11 / VK12 / VK13": {
+    explanation:
+      "Condition Record Maintenance (Master Harga SD):\n• Fungsi Transaksi: VK11 membuat, VK12 mengubah, dan VK13 menampilkan data kondisi harga, tarif, diskon, dan pajak.\n• Contoh Condition Type: PR00 (Base Price tarif internet bulanan MRC dan biaya aktivasi OTC), MWST (Pajak PPN 11%), K007 (Customer Discount).\n• Tabel Database: Kondisi disimpan di tabel KONH (header) dan KONP (item rincian).",
+    moduleId: "07",
+  },
+  "VD51 / VD52 / VD53": {
+    explanation:
+      "Customer-Material Information Record:\n• Fungsi Transaksi: Memelihara hubungan khusus antara pelanggan tertentu dengan kode material internal.\n• Kegunaan: Memetakan nomor material versi pelanggan (Customer Material Number), deskripsi khusus, toleransi pengiriman, dan delivering plant default.",
+    moduleId: "07",
+  },
+  "V.01 / V.02": {
+    explanation:
+      "Incomplete Sales Documents (Log Dokumen Tidak Lengkap):\n• Fungsi Laporan: Menampilkan daftar pesanan penjualan (Sales Order) yang belum lengkap datanya (Incompletion Log), misal data pricing, delivery data, atau billing plan yang belum terisi.\n• Kontrol Kualitas: Memastikan order tidak dapat diproses lebih lanjut ke pengiriman atau penagihan sebelum data wajib dilengkapi.",
+    moduleId: "07",
+  },
+  "OX05 / OVXI / OVXB / OVXG": {
+    explanation:
+      "Definisi Struktur Organisasi SD (Enterprise Structure SPRO):\n• Fungsi OX05: Mendefinisikan Sales Organization (unit legal tertinggi penjualan).\n• Fungsi OVXI: Mendefinisikan Distribution Channel (saluran penjualan, misal B2B atau Wholesale).\n• Fungsi OVXB: Mendefinisikan Division (lini produk, misal Internet Data Service).\n• Fungsi OVXG: Menggabungkan ketiganya menjadi Sales Area.",
+    moduleId: "07",
+  },
+  "OVX3 / OVX6": {
+    explanation:
+      "Penetapan Organisasi SD (Assignment SPRO):\n• Fungsi OVX3: Menghubungkan Sales Organization ke Company Code akuntansi pembukuan.\n• Fungsi OVX6: Menghubungkan Sales Area ke Delivering Plant untuk pengeluaran barang/perangkat CPE.",
+    moduleId: "07",
+  },
+  "VKOA": {
+    explanation:
+      "Revenue Account Determination (Otomatisasi Akun SD-FI):\n• Fungsi Konfigurasi: T-Code sentral konsultan SD untuk memetakan penentuan akun Buku Besar pendapatan secara otomatis saat faktur VF01 dibuat.\n• Kunci Parameter: Menggunakan kombinasi Application V, Chart of Accounts, Sales Org, Customer Account Assignment Group (KTGRD), Material Account Assignment Group (KTGRM), dan Account Key (ERL untuk pendapatan kotor, MWS untuk pajak, ERS untuk potongan).\n• Padanan MM: VKOA pada modul SD memiliki peran analog seperti OBYC pada modul logistik MM.",
+    moduleId: "07",
+    sources: [{ title: "SAP Learning — Billing Process and Integration to SAP S/4HANA Finance", url: "https://learning.sap.com/courses/exploring-sap-s-4hana-sales-essentials/executing-the-billing-process-and-the-integration-to-sap-s-4hana-finance_e2dd5db3-73c3-4cda-8ad5-1e7f39f04fba" }],
+  },
+  "V/06 / V/08 / OVKK": {
+    explanation:
+      "Pricing Procedure Configuration (Skema Harga SPRO):\n• Fungsi V/06: Mendefinisikan Condition Types (PR00, MWST, K007).\n• Fungsi V/08: Menyusun urutan langkah kalkulasi harga dalam Pricing Procedure.\n• Fungsi OVKK: Menentukan skema harga berdasarkan Sales Area, Customer Pricing Procedure, dan Document Pricing Procedure.",
+    moduleId: "07",
+  },
+  "VBAK": {
+    explanation:
+      "Sales Order Header Data:\n• Key Field: VBELN (Nomor Dokumen Penjualan).\n• Cakupan Data: Menyimpan nomor customer Sold-to Party (KUNNR), tipe pesanan (AUART), tanggal dokumen, Sales Area, dan nilai total bersih order (NETWR).",
+    moduleId: "07",
+  },
+  "VBAP": {
+    explanation:
+      "Sales Order Item Data:\n• Key Field: VBELN + POSNR (Nomor Baris Item).\n• Cakupan Data: Menyimpan kode material produk (MATNR), deskripsi, kuantitas pesanan, delivering plant (WERKS), item category, dan nilai per baris.",
+    moduleId: "07",
+  },
+  "VBKD": {
+    explanation:
+      "Sales Document Business Data:\n• Key Field: VBELN + POSNR.\n• Cakupan Data: Menyimpan syarat pembayaran (Terms of Payment Z030), IncoTerms, dan nomor referensi Billing Plan (FPLNR) untuk jadwal penagihan berkala MRC.",
+    moduleId: "07",
+  },
+  "FPLA": {
+    explanation:
+      "Billing Plan Header Data:\n• Key Field: FPLNR (Nomor Billing Plan).\n• Cakupan Data: Menyimpan tipe billing plan (Periodic Billing 02 untuk MRC atau Milestone 01 untuk OTC), tanggal mulai kontrak, dan frekuensi penagihan bulanan.",
+    moduleId: "07",
+  },
+  "FPLT": {
+    explanation:
+      "Billing Plan Dates / Item Schedule:\n• Key Field: FPLNR + FPLTR.\n• Cakupan Data: Menyimpan seluruh jadwal tanggal penagihan faktur berkala (Billing Dates), nilai tagihan per periode, dan status apakah faktur sudah terbentuk via VF01.",
+    moduleId: "07",
+  },
+  "LIKP": {
+    explanation:
+      "Outbound Delivery Header Data:\n• Key Field: VBELN (Nomor Delivery).\n• Cakupan Data: Menyimpan nomor pengiriman logistik, Shipping Point, tanggal pengiriman, dan status pergerakan barang (PGI).",
+    moduleId: "07",
+  },
+  "LIPS": {
+    explanation:
+      "Outbound Delivery Item Data:\n• Key Field: VBELN + POSNR.\n• Cakupan Data: Menyimpan rincian kode material perangkat fisik (CPE/ONT router), kuantitas fisik yang dikirim, dan gudang asal.",
+    moduleId: "07",
+  },
+  "VBRK": {
+    explanation:
+      "Billing Document Header Data:\n• Key Field: VBELN (Nomor Faktur / Invoice Penjualan).\n• Cakupan Data: Menyimpan nomor tagihan pelanggan, nomor Payer (KUNRG), tanggal billing (FKDAT), tipe faktur (FKART, misal F2), dan nomor dokumen kondisi harga (KNUMV).",
+    moduleId: "07",
+  },
+  "VBRP": {
+    explanation:
+      "Billing Document Item Data:\n• Key Field: VBELN + POSNR.\n• Cakupan Data: Rincian baris material layanan yang ditagihkan (Material 2 MRC atau Material 3 OTC), kuantitas, nilai bersih penjualan, dan nomor Sales Order acuan.",
+    moduleId: "07",
+  },
+  "PRCD_ELEMENTS": {
+    explanation:
+      "Pricing Conditions Elements (S/4HANA):\n• Key Field: KNUMV + KPOSN + STUNR.\n• Cakupan Data: Tabel penyimpanan modern di S/4HANA yang menggantikan tabel ECC KONV; mencatat rincian nilai moneter untuk setiap condition type (PR00, MWST, potongan harga) pada order dan invoice.",
+    moduleId: "07",
+  },
+  "VKOA: Account determination": {
+    explanation:
+      "Penyebab & Solusi Error VKOA (Account Determination SD-FI Gagal):\n• Pesan Error: Sistem gagal merilis Billing Document VF01 ke akuntansi keuangan FI karena akun pendapatan (G/L Account) belum ditentukan.\n• Analisis Penyebab: Periksa Chart of Accounts, Sales Organization, Customer Account Assignment Group (KTGRD di master BP role FLCU01), dan Material Account Assignment Group (KTGRM di master material sales view).\n• Solusi Konfigurasi: Lengkapi pemetaan akun Buku Besar pendapatan di T-Code VKOA untuk Account Key terkait (ERL untuk pendapatan kotor, MWS untuk pajak PPN).",
+    moduleId: "07",
+    sources: [{ title: "SAP Learning — Billing Process and Integration to SAP S/4HANA Finance", url: "https://learning.sap.com/courses/exploring-sap-s-4hana-sales-essentials/executing-the-billing-process-and-the-integration-to-sap-s-4hana-finance_e2dd5db3-73c3-4cda-8ad5-1e7f39f04fba" }],
+  },
 };

@@ -49,6 +49,9 @@ const route: Record<string, View> = {
   CJ20N: 'case', ME21N: 'case', ME29N: 'case', ML81N: 'case',
   'F-48': 'case', 'F-54': 'case', F110: 'case',
   CJ30: 'avac', CJ32: 'avac', CJ88: 'settlement', AFAB: 'settlement',
+  VA01: 'e2e', VA02: 'e2e', VA03: 'e2e',
+  VF01: 'e2e', VF02: 'e2e', VF03: 'e2e', VF04: 'e2e',
+  VKOA: 'e2e', VK11: 'e2e',
 };
 
 function sessionNavigation(tcode: string): Partial<Store> {

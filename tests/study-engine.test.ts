@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { buildDictionaries, buildStudyIndex, dictionaryCodes, evaluateQuiz, parseCurriculum, searchStudy } from '../src/lib/study-engine';
+import { buildDictionaries, buildStudyIndex, dictionaryCodes, evaluateQuiz, parseCurriculum, searchStudy, type DictionaryEntry, type Module } from '../src/lib/study-engine';
+import { dictionaries, modules, studyIndex } from '../src/data/curriculum';
 import { MarkdownReader } from '../src/components/MarkdownReader';
 
 const onModule = () => {};
@@ -75,5 +76,18 @@ describe('Markdown trust boundary', () => {
     expect(html.match(/<details>/g)?.length).toBe(2);
     expect(html).toContain('id="topic-2"');
     expect(html).toContain('id="topic-3"');
+  });
+});
+describe('Module 07 SAP SD Integration', () => {
+  test('parses module 07 and finds SD topics in study index', () => {
+    expect(modules.map((m: Module) => m.id)).toContain('07');
+    const sdHits = searchStudy(studyIndex, 'VKOA');
+    expect(sdHits.length).toBeGreaterThan(0);
+    const va01Entry = dictionaries.find((d: DictionaryEntry) => dictionaryCodes(d).includes('VA01'));
+    expect(va01Entry).toBeDefined();
+    expect(va01Entry?.explanation).toContain('Sales Order');
+    const vkoaEntry = dictionaries.find((d: DictionaryEntry) => dictionaryCodes(d).includes('VKOA'));
+    expect(vkoaEntry).toBeDefined();
+    expect(vkoaEntry?.explanation).toContain('Revenue Account Determination');
   });
 });

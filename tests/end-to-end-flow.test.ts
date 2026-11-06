@@ -12,11 +12,17 @@ describe('general SAP end-to-end flow', () => {
     expect(endToEndStages.some(stage => stage.id === 'incoming-payment')).toBe(true);
   });
 
-  test('does not present telco billing configuration as universal', () => {
-    for (const id of ['product-master', 'customer-contract', 'fulfillment', 'otc-billing', 'customer-invoice', 'incoming-payment', 'lifecycle-reporting']) {
+  test('validates stage statuses according to SAP standard vs configuration dependency', () => {
+    const conditionalIds = ['product-master', 'customer-contract', 'fulfillment', 'lifecycle-reporting'];
+    for (const id of conditionalIds) {
       const stage = endToEndStages.find(item => item.id === id);
       expect(stage?.status).toBe('Bersyarat konfigurasi');
       expect(stage?.control.length).toBeGreaterThan(20);
+    }
+    const standardIds = ['subscription-order', 'otc-billing', 'mrc-billing', 'customer-invoice', 'incoming-payment'];
+    for (const id of standardIds) {
+      const stage = endToEndStages.find(item => item.id === id);
+      expect(stage?.status).toBe('Sesuai konsep SAP');
     }
   });
   test('models MetroNexia root, MRC, and OTC as separate product/material items', () => {
@@ -28,6 +34,20 @@ describe('general SAP end-to-end flow', () => {
       ['MATERIAL 3', 'OTC'],
     ]);
     expect(telcoProductMaterials.find(item => item.billingType === 'Grouping')?.role.toLowerCase()).toContain('root');
+  });
+  test('integrates SAP SD Order-to-Cash logic, Sales Area, and VKOA', () => {
+    expect(telcoContext.salesArea).toContain('Sales Org 1000');
+    expect(telcoContext.salesArea).toContain('Dist. Channel 10');
+    expect(telcoContext.salesArea).toContain('Division 01');
+    const invoiceStage = endToEndStages.find(stage => stage.id === 'customer-invoice');
+    expect(invoiceStage?.transaction).toContain('VKOA');
+    expect(invoiceStage?.module).toContain('SAP SD');
+    const orderStage = endToEndStages.find(stage => stage.id === 'subscription-order');
+    expect(orderStage?.transaction).toContain('VA01');
+    const billingOtcStage = endToEndStages.find(stage => stage.id === 'otc-billing');
+    expect(billingOtcStage?.transaction).toContain('VF01');
+    const billingMrcStage = endToEndStages.find(stage => stage.id === 'mrc-billing');
+    expect(billingMrcStage?.transaction).toContain('VF01');
   });
 
   test('every official reference is an SAP-controlled source', () => {
@@ -41,10 +61,11 @@ describe('general SAP end-to-end flow', () => {
     }
   });
 
-  test('audit keeps synthetic telco identifiers separate from SAP process claims', () => {
-    expect(auditedInputs.length).toBeGreaterThanOrEqual(6);
+  test('audit keeps synthetic telco identifiers separate from SAP process claims and verifies SD audit', () => {
+    expect(auditedInputs.length).toBeGreaterThanOrEqual(7);
     expect(auditedInputs.find(item => item.category === 'MRC')?.status).toBe('Sesuai konsep SAP');
     expect(auditedInputs.find(item => item.category === 'OTC')?.status).toBe('Sesuai konsep SAP');
+    expect(auditedInputs.find(item => item.category === 'SAP SD Order-to-Cash & VKOA')?.status).toBe('Sesuai konsep SAP');
     expect(auditedInputs.find(item => item.category === 'Struktur material')?.status).toBe('Bersyarat konfigurasi');
     expect(auditedInputs.every(item => item.finding.length > 30 && item.action.length > 20)).toBe(true);
   });
