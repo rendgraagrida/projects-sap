@@ -217,7 +217,7 @@ export function CenterPanel() {
           className={`sim-track-btn ${store.simTrack === 'infra' ? 'active' : ''}`}
           onClick={() => store.setSimTrack('infra')}
         >
-          🏗️ Track 1: Infrastruktur Akses MetroNexia (MM • PS • FI)
+          🏗️ Infrastruktur Akses MetroNexia (MM • PS • FI)
         </button>
         <button
           type="button"
@@ -226,7 +226,7 @@ export function CenterPanel() {
           className={`sim-track-btn ${store.simTrack === 'sales' ? 'active' : ''}`}
           onClick={() => store.setSimTrack('sales')}
         >
-          💼 Track 2: Proses Penjualan Internet MetroNexia (SD • FI-AR)
+          💼 Proses Penjualan Internet MetroNexia (SD • FI-AR)
         </button>
       </div>
 
