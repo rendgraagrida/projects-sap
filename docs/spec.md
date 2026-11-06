@@ -13,7 +13,7 @@ Seluruh isi sumber berikut dibaca untuk rancangan ini:
 - [02 — FI](curriculum/02-sap-fi-financial-accounting.md): tipe dokumen, posting key, AP/DP/payment, AA, pajak, dan closing.
 - [03 — MM](curriculum/03-sap-mm-materials-management.md): PR/PO, P/Q, SES, movement, OBYC, coverage MAP, dan invoice block.
 - [04 — PS](curriculum/04-sap-ps-project-system.md): status WBS, AVAC, commitment replacement, settlement, dan AuC.
-- [05 — Integrasi](curriculum/05-integration-and-end-to-end-case-study.md): seluruh 10 langkah CAPEX, transaksi majemuk, jurnal, pajak, serta dua AuC/final asset.
+- [05 — Integrasi](curriculum/05-integration-and-end-to-end-case-study.md): simulation CAPEX infrastruktur MetroNexia dan flow revenue telco InfraNexia/MetroNexia dengan Material 1 root, Material 2 MRC, dan Material 3 OTC.
 - [06 — Kamus & Ujian](curriculum/06-tcode-spro-tables-and-exam-prep.md): daftar T-Code/Fiori/SPRO/tabel, relasi, enam error, dan lima kasus ujian aktual.
 - SOP kanonikal `D:/DEVELOPMENT/general/WORKFLOW_7_LEVELS.md`.
 

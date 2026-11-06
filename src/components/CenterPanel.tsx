@@ -208,8 +208,8 @@ export function CenterPanel() {
       <button type="button" disabled={!Object.keys(store.quizAnswers).length} onClick={store.resetQuiz}>Ulangi seluruh latihan</button>
     </section>}
     {store.view === 'case' && <>
-      <div className="eyebrow">KASUS SINTETIS · TELKOM INFRASTRUKTUR / MM / PS / FI</div><h1>Deployment Fiber Optic Backbone Regional</h1>
-      <p>Contoh pembelajaran bisnis fiber PT Telkom Infrastruktur Indonesia (InfraNexia), bukan Telkominfra yang merupakan entitas berbeda. Budget $100,000 · actual dan kapitalisasi $90,000 · sisa $10,000. Lingkup, nilai, vendor, akun, pajak 11%, withholding 2%, WBS, dan umur manfaat adalah asumsi edukasi, bukan data internal atau kebijakan TelkomGroup. Simulasi tidak mengeksekusi transaksi SAP atau bank.</p>
+      <div className="eyebrow">KASUS SINTETIS · INFRANEXIA / METRONEXIA / MM / PS / FI</div><h1>Deployment Infrastruktur Akses MetroNexia</h1>
+      <p>Contoh pembelajaran bisnis telco InfraNexia dengan layanan internet MetroNexia. Budget $100,000, vendor, akun, pajak 11%, withholding 2%, WBS, dan umur manfaat adalah asumsi edukasi sintetis untuk simulasi infrastruktur; ini bukan data internal perusahaan dan tidak mengeksekusi transaksi SAP atau bank. Untuk alur penjualan MRC/OTC, gunakan tab Flow E2E.</p>
       <div className="actions"><button type="button" className="primary" disabled={store.state.caseAction >= caseActions.length} onClick={store.nextCase}>Jalankan aksi berikutnya</button><button type="button" disabled={store.state.caseAction >= caseActions.length} onClick={store.runCase}>Jalankan semua aksi tersisa</button><button type="button" disabled={store.state.caseAction === 0} onClick={store.resetCase}>Reset kasus</button></div>
       <p role="status">{store.state.caseAction} / {caseActions.length} aksi selesai · Status {store.state.caseStatus}</p>
       <div className="step-list">{caseActions.map((action, index) => {

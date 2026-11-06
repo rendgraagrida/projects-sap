@@ -1,51 +1,67 @@
-# Audit Flow End-to-End dan Data Lab SAP
+# Audit Flow End-to-End Telco InfraNexia / MetroNexia
 
 Tanggal audit: 2026-11-05
 
 ## Batas audit
 
-Audit ini memeriksa apakah flow general pada aplikasi mengikuti konsep proses SAP S/4HANA yang terdokumentasi dan apakah data yang tampil dibedakan antara:
+Audit ini memeriksa flow penjualan layanan internet MetroNexia dan membedakan:
 
-- konsep proses yang didukung dokumentasi SAP;
+- konsep proses SAP yang didukung dokumentasi resmi;
 - perilaku yang bergantung pada edisi, release, otorisasi, dan konfigurasi;
-- fixture sintetis untuk pembelajaran.
+- nama, material, tarif, customer, dan ID yang hanya merupakan fixture sintetis.
 
-Aplikasi ini **bukan koneksi SAP**, bukan sumber data Telkom, dan tidak memvalidasi konfigurasi sistem pelanggan.
+Aplikasi ini **bukan koneksi SAP**, bukan sumber data internal InfraNexia, dan tidak menjalankan provisioning jaringan atau transaksi keuangan nyata.
+
+## Konteks bisnis telco
+
+InfraNexia menjual layanan akses internet dengan brand MetroNexia. Struktur product/material yang dipakai di lab:
+
+```text
+MATERIAL 1 — MetroNexia
+├── MATERIAL 2 — MetroNexia MRC (Monthly Recurring Charge)
+└── MATERIAL 3 — MetroNexia OTC (One-Time Charge)
+```
+
+Interpretasi SAP:
+
+- **Material 1** adalah root/product family atau grouping. Root tidak otomatis menjadi item tagihan.
+- **Material 2 / MRC** adalah produk atau material layanan dengan recurring fee dan billing cycle bulanan.
+- **Material 3 / OTC** adalah one-off charge seperti aktivasi, instalasi, perangkat, atau perubahan layanan.
+- Ketiganya merupakan master/product item yang berbeda. Hubungan root-child harus dimodelkan melalui Product Hierarchy, Material Group, product bundle, atau subscription product configuration. Penamaan saja tidak membuat BOM atau relasi billing.
 
 ## Flow general yang dipakai
 
-1. Kebutuhan bisnis dan keputusan memakai project/WBS bila diperlukan.
-2. Project Definition, WBS, planning, budget, dan availability control bila proyek memerlukannya.
-3. Purchase Requisition dan source determination.
-4. Purchase Order dan approval.
-5. Goods Receipt untuk material atau Service Entry Sheet untuk jasa.
-6. Logistics Invoice Verification / supplier invoice.
-7. Automatic Payment Run dan clearing open item vendor.
-8. Settlement biaya ke AuC/receiver bila investment measure.
-9. Full settlement ke aset tetap final dan depreciation posting bila aset sudah siap digunakan.
+1. Definisikan material/product dan rate plan MetroNexia.
+2. Buat Business Partner, contract account, dan subscription contract.
+3. Tangkap subscription order berisi MRC dan OTC.
+4. Distribusikan order untuk provisioning dan aktivasi technical resource.
+5. Tagihkan OTC satu kali setelah event/order yang memenuhi syarat.
+6. Jalankan billing MRC berulang berdasarkan billing cycle dan periode layanan.
+7. Posting invoice serta piutang melalui FI-AR atau FI-CA sesuai arsitektur.
+8. Terima pembayaran pelanggan dan clearing open item.
+9. Kelola perubahan paket, suspend/resume, credit, termination, renewal, dan revenue reporting.
 
-Procurement material/jasa tidak selalu membutuhkan PS. Sebaliknya, settlement, AuC, dan depreciation bukan langkah wajib untuk setiap proses P2P.
+Flow ini berbeda dari tab **Simulation**, yang tetap digunakan untuk belajar investasi infrastruktur, WBS, procurement material/jasa, AVAC, dan settlement CAPEX.
 
 ## Hasil audit input
 
 | Area | Status | Keputusan |
 | --- | --- | --- |
-| `1000`, `1100`, dan `P-2026-TINF01.*` | Fixture edukasi | Dipertahankan sebagai ID sintetis; tidak disebut sebagai default SAP atau data Telkom. |
-| `4500010001/2`, vendor `100024/100025`, dan material `MAT-*` | Fixture edukasi | Dipakai untuk trace kasus; implementasi nyata harus memakai master data target. |
-| MIGO `101` terhadap PO | Sesuai konsep SAP | Dipakai sebagai contoh goods receipt utama. |
-| `221 Q` untuk project stock | Bersyarat konfigurasi | Hanya valid dalam skenario project stock dan konfigurasi yang sesuai; bukan aturan universal. |
-| PPN 11%, PPh 23 2%, `V1/V2`, dan nomor G/L | Fixture/konfigurasi | Tidak boleh dianggap tarif, tax code, atau akun standar SAP. |
-| `BSX`, `WRX`, `GBB-VBR` | Bersyarat konfigurasi | Kunci account determination adalah konsep SAP; nomor akun ditentukan chart of accounts dan konfigurasi. |
-| `ACDOCA` dan `MATDOC` | Bersyarat release/edisi | Ditampilkan sebagai model S/4HANA; compatibility view dan akses tabel lama bergantung release. |
-| AuC otomatis saat release, `CJ88`, dan `AFAB` | Bersyarat konfigurasi | Investment profile, settlement profile, depreciation area/key, tanggal kapitalisasi, dan period control harus tersedia. |
+| InfraNexia, MetroNexia, customer, tarif, dan nomor dokumen | Fixture edukasi | Dipakai sebagai konteks pembelajaran; tidak diklaim sebagai data internal atau data default SAP. |
+| Material 1 root, Material 2 MRC, Material 3 OTC | Bersyarat konfigurasi | Dibuat sebagai tiga master/product item; grouping dan hubungan bundle harus dikonfigurasi pada solusi target. |
+| MRC | Sesuai konsep SAP | Dimodelkan sebagai recurring fee dengan subscription contract dan billing cycle. Proration, perubahan harga, dan cut-off tetap configurable. |
+| OTC | Sesuai konsep SAP | Dimodelkan sebagai one-off charge seperti activation/installation fee dan tidak diperlakukan sebagai recurring contract item secara default. |
+| Subscription order dan technical resource | Bersyarat konfigurasi | SAP mendukung product bundle, technical data, contract start date, recurring fee, dan one-time charge; provisioning jaringan membutuhkan integrasi OSS/BSS. |
+| Billing → Finance | Bersyarat konfigurasi | Billing dapat mentransfer data ke Finance dan membentuk receivable; pilihan FI-AR/FI-CA, tax, revenue mapping, serta invoice aggregation mengikuti desain target. |
+| Incoming payment | Bersyarat konfigurasi | Posting kas, payment lot, auto-clearing, residual/partial payment, dan bank interface harus dikonfigurasi dan diuji. |
 
-## Rujukan resmi
+## Rujukan resmi SAP
 
-- [SAP Learning — Outlining a General Procurement Process](https://learning.sap.com/courses/business-processes-in-sap-s-4hana-sourcing-and-procurement/outlining-a-general-procurement-process_dfbc33f8-72f1-4d30-a4cd-bd63d48d7a70)
-- [SAP Learning — Posting a Goods Receipt with Reference](https://learning.sap.com/courses/inventory-management-and-physical-inventory-in-sap-s-4hana/posting-a-goods-receipt-with-reference)
-- [SAP Help — Movement Types (Project Stock)](https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/cc8f759e1b0e4f3b8048c3cf808d4068/674ad2784d654e45ae9e4cea9b5dedcc.html)
-- [SAP Learning — Executing an Automatic Payment Run](https://learning.sap.com/courses/configuring-additional-settings-in-financial-accounting-in-sap-s-4hana/executing-an-automatic-payment-run)
-- [SAP Learning — Executing a Settlement](https://learning.sap.com/courses/project-financials-control-in-sap-s-4hana/executing-a-settlement)
-- [SAP Help — Settlement of an Asset under Construction](https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/67e323b7117e4c91869c258933f47182/5da0a3519aa05f72e10000000a423f68.html)
+- [SAP Learning — Performing Subscription Order Creation](https://learning.sap.com/courses/implementing-sap-subscription-order-management/performing-the-subscription-order-creation)
+- [SAP Help — SAP Subscription Billing](https://help.sap.com/docs/subscription-billing/feature-overview/sap-subscription-billing)
+- [SAP Help — Billing Cycle](https://help.sap.com/docs/subscription-billing/feature-overview/billing-cycle)
+- [SAP Learning — Billing Process and Integration to SAP S/4HANA Finance](https://learning.sap.com/courses/exploring-sap-s-4hana-sales-essentials/executing-the-billing-process-and-the-integration-to-sap-s-4hana-finance_e2dd5db3-73c3-4cda-8ad5-1e7f39f04fba)
+- [SAP Help — Material Master Data](https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/af9ef57f504840d2b81be8667206d485/3d7eb65334e6b54ce10000000a174cb4.html)
+- [SAP Help — Billing and Revenue Innovation Management](https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/a03da85e7c96487aac46d431799bebdf/c918bf4f27f44f71888040e6ae3add31.html)
 
-Rujukan di atas mendukung konsep proses, bukan validasi terhadap konfigurasi atau data perusahaan tertentu.
+Rujukan tersebut mendukung konsep proses dan fitur produk, bukan validasi terhadap konfigurasi, tarif, customer, atau master data perusahaan tertentu.

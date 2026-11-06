@@ -1,4 +1,4 @@
-import { auditedInputs, endToEndStages, officialSources, type FlowAuditStatus } from '../data/end-to-end-flow';
+import { auditedInputs, endToEndStages, officialSources, telcoContext, telcoProductMaterials, type FlowAuditStatus } from '../data/end-to-end-flow';
 
 const statusClass: Record<FlowAuditStatus, string> = {
   'Sesuai konsep SAP': 'e2e-status-confirmed',
@@ -7,15 +7,27 @@ const statusClass: Record<FlowAuditStatus, string> = {
 };
 
 export function EndToEndFlow() {
-  return <section className="e2e-page" aria-label="Flow end-to-end SAP general">
-    <div className="eyebrow">REFERENSI PROSES · MM / PS / FI</div>
-    <h1>Flow End-to-End SAP secara General</h1>
-    <p className="e2e-lead">Peta ini menunjukkan jalur umum dari kebutuhan sampai penyelesaian. Jalur PS dan FI-AA hanya dipakai bila objeknya project/investment measure; jalur procurement biasa dapat berhenti setelah pembayaran.</p>
+  return <section className="e2e-page" aria-label="Flow end-to-end SAP telco">
+    <div className="eyebrow">KONTEKS TELCO · INFRANEXIA / METRONEXIA</div>
+    <h1>Flow End-to-End Penjualan Internet MetroNexia</h1>
+    <p className="e2e-lead">Peta ini mengikuti siklus penjualan layanan internet: dari material dan subscription product, order pelanggan, aktivasi, billing MRC/OTC, sampai penerimaan pembayaran dan lifecycle layanan. Angka, nama, dan ID pada contoh adalah fixture edukasi.</p>
     <div className="e2e-legend" aria-label="Legenda status audit">
       <span className="e2e-status e2e-status-confirmed">Sesuai konsep SAP</span>
       <span className="e2e-status e2e-status-conditional">Bersyarat konfigurasi</span>
       <span className="e2e-status e2e-status-fixture">Fixture edukasi</span>
     </div>
+    <section className="telco-context-card" aria-labelledby="telco-context-title">
+      <div className="eyebrow">MODEL PRODUK DAN MATERIAL SAP</div>
+      <h2 id="telco-context-title">{telcoContext.company} · {telcoContext.business}</h2>
+      <p>Brand penawaran: <strong>{telcoContext.brand}</strong>. MRC adalah biaya berulang bulanan; OTC adalah biaya satu kali. Root hanya menjadi grouping kecuali solusi target secara eksplisit menjadikannya sellable bundle.</p>
+      <div className="telco-material-tree">{telcoProductMaterials.map(material => <div className={`telco-material-node level-${material.level}`} key={material.materialId}>
+        <div className="telco-material-head"><span className="telco-material-id">{material.materialId}</span><span className={`e2e-status ${statusClass[material.status]}`}>{material.billingType}</span></div>
+        <strong>{material.name}</strong>
+        <p>{material.role}</p>
+        <small>{material.sapRepresentation}</small>
+      </div>)}</div>
+      <p className="telco-context-note"><strong>Catatan SAP:</strong> Material 1, 2, dan 3 adalah tiga master/product item yang berbeda. Struktur parent-child perlu dimodelkan lewat product hierarchy, material group, bundle, atau subscription product configuration; penamaan saja tidak membuat BOM atau billing relationship.</p>
+    </section>
 
     <ol className="e2e-flow-list" aria-label="Urutan proses end-to-end">
       {endToEndStages.map(stage => <li className="e2e-stage-card" key={stage.id}>
@@ -38,7 +50,7 @@ export function EndToEndFlow() {
     <section className="e2e-audit" aria-labelledby="e2e-audit-title">
       <div className="eyebrow">AUDIT INPUT DATA</div>
       <h2 id="e2e-audit-title">Status data yang dipakai di lab</h2>
-      <p>Audit ini memisahkan fakta proses SAP dari ID, akun, tarif, dan nilai yang sengaja dibuat sintetis. Tidak ada nomor vendor, akun, atau kebijakan Telkom yang diklaim berasal dari sistem resmi.</p>
+      <p>Audit ini memisahkan fakta proses SAP dari ID, akun, tarif, dan nilai yang sengaja dibuat sintetis. Tidak ada nomor customer, akun, tarif, atau konfigurasi yang diklaim sebagai data resmi InfraNexia.</p>
       <div className="table-wrap e2e-audit-table-wrap"><table>
         <caption className="sr-only">Audit data input lab terhadap dokumentasi SAP</caption>
         <thead><tr><th>Kategori</th><th>Data pada lab</th><th>Status</th><th>Temuan audit</th><th>Tindakan</th></tr></thead>

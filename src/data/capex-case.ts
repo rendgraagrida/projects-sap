@@ -1,7 +1,7 @@
 import type { CaseAction } from '../types/sap';
 
-// Fixture edukasi sintetis yang terinspirasi bisnis fiber PT Telkom Infrastruktur
-// Indonesia (InfraNexia), bukan data internal atau proyek aktual TelkomGroup.
+// Fixture edukasi sintetis untuk infrastruktur akses InfraNexia / MetroNexia,
+// bukan data internal atau proyek aktual perusahaan.
 export const caseActions: readonly CaseAction[] = [
   { step: 1, id: 'project', title: 'Membuat struktur proyek', tcode: 'CJ20N', description: 'Project TINF-2026-01 dengan WBS pekerjaan sipil jaringan dan deployment fiber.' },
   { step: 2, id: 'budget', title: 'Anggaran proyek', tcode: 'CJ30/CJ32', description: 'Release $40,000 untuk site/civil works dan $60,000 untuk material network.' },
