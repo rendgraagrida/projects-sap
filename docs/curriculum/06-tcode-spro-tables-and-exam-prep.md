@@ -84,7 +84,10 @@ Rujukan: [SAP Fiori Apps Reference Library](https://fioriappslibrary.hana.ondema
 | **FI-AP (Bayar)** | `F-53` / `F110` | Manual / Automatic Payment | Aplikasi pembayaran sesuai edisi |
 | **FI-AP (Report)** | `FK10N` / `FBL1N` | Vendor Balance / Line Items | Aplikasi supplier line items |
 | **FI-AR (Piutang)** | `FB70` / `F-28` | Customer Invoice / Incoming Payment | Aplikasi customer invoice / payment |
+| **FI-AR (Clearing)** | `F-28` / `F-32` | Incoming Payment / Clear Customer | Aplikasi incoming payment dan clearing sesuai edisi |
 | **FI-AR (Report)** | `FD10N` / `FBL5N` | Customer Balance / Line Items | Aplikasi customer line items |
+| **FI-AR (Dunning)** | `F150` | Dunning Run / Customer Notices | Manage Dunning Notices atau aplikasi setara sesuai edisi |
+| **FI-AR (Credit)** | `FD32` / `UKM_BP` | Classic Credit Master / FSCM Business Partner Credit | SAP Credit Management sesuai edisi |
 | **FI-AA (Aset)** | `AS01` / `AS02` / `AS03` | Create / Change / Display Asset | Aplikasi fixed asset |
 | **FI-AA (Aset)** | `AW01N` | Asset Explorer | Aplikasi asset values |
 | **FI-AA (Aset)** | `AIAB` $\rightarrow$ `AIBU` | Distribute / Settle AuC Line Items | Fungsi AuC settlement sesuai proses |

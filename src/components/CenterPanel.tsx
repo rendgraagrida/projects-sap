@@ -13,6 +13,7 @@ import type { PriceControl } from '../types/sap';
 import { AvacSandbox } from './AvacSandbox';
 import { MarkdownReader } from './MarkdownReader';
 import { EndToEndFlow } from './EndToEndFlow';
+import { FiArLab } from './FiArLab';
 
 function MigoLab() {
   const store = useSapStore();
@@ -182,7 +183,7 @@ export function CenterPanel() {
   const answered = question && question.id in store.quizAnswers;
   return <main className="panel center" aria-label="Materi dan laboratorium" ref={root}>
     <nav className="workspace-tabs" aria-label="Laboratorium">
-      {([['case', 'Simulation'], ['e2e', 'Flow E2E'], ['migo', 'MIGO & OBYC'], ['miro', 'MIRO'], ['avac', 'AVAC'], ['settlement', 'CJ88 & AFAB']] as const).map(([id, label]) => <button type="button" key={id} aria-pressed={store.view === id} className={store.view === id ? 'active' : ''} onClick={() => store.setView(id)}>{label}</button>)}
+      {([['case', 'Simulation'], ['e2e', 'Flow E2E'], ['migo', 'MIGO & OBYC'], ['miro', 'MIRO'], ['fiar', 'FI-AR'], ['avac', 'AVAC'], ['settlement', 'CJ88 & AFAB']] as const).map(([id, label]) => <button type="button" key={id} aria-pressed={store.view === id} className={store.view === id ? 'active' : ''} onClick={() => store.setView(id)}>{label}</button>)}
     </nav>
     {store.view === 'reader' && <>
       <div className="reader-heading"><span>MODUL {module.id} / {modules.length}</span><button type="button" disabled={store.completed.includes(module.id)} onClick={store.markComplete}>{store.completed.includes(module.id) ? 'Selesai dibaca' : 'Tandai selesai'}</button></div>
@@ -291,6 +292,7 @@ export function CenterPanel() {
     </>}
     {store.view === 'migo' && <MigoLab />}
     {store.view === 'miro' && <MiroLab />}
+    {store.view === 'fiar' && <FiArLab />}
     {store.view === 'avac' && <AvacSandbox />}
     {store.view === 'settlement' && <SettlementLab />}
     {store.view === 'e2e' && <EndToEndFlow />}

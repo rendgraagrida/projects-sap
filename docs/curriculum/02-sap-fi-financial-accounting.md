@@ -152,11 +152,86 @@ Untuk membayar ratusan faktur jatuh tempo sekaligus secara otomatis dan menghasi
 
 ---
 
-## 4. Sub-Modul FI-AA (Asset Accounting — Aset Tetap & Kapitalisasi Proyek)
+## 4. Sub-Modul FI-AR (Accounts Receivable — Piutang Pelanggan)
+
+**FI-AR** adalah subledger pelanggan di bawah FI. Fokusnya bukan sekadar membuat invoice, tetapi menjaga saldo per pelanggan, open item, jatuh tempo, penerimaan, clearing, dunning, credit exposure, dan rekonsiliasi otomatis ke G/L melalui **reconciliation account**. Untuk transaksi penjualan dari SD, billing `VF01` biasanya membentuk dokumen FI melalui `VKOA`; `FB70` adalah jalur invoice customer langsung tanpa dokumen SD.
+
+### 4.1 Master Data dan Rekonsiliasi
+
+Pada S/4HANA, customer dikelola sebagai Business Partner:
+
+- **Role `FLCU00`**: data FI tingkat company code, termasuk reconciliation account piutang (contoh fixture `113010`) dan terms of payment.
+- **Role `FLCU01`**: data Sales Area yang dipakai SD, termasuk partner functions, pricing, dan account assignment group customer.
+- **Reconciliation account**: akun G/L otomatis untuk saldo customer; user tidak seharusnya mengubah akun rekonsiliasi secara manual pada baris customer.
+- **Open item management**: invoice customer tetap terbuka sampai dibayar, dikompensasi, dibatalkan, atau dipindahkan sesuai proses yang berwenang.
+
+### 4.2 Invoice Customer dan Jurnal
+
+Jalur utama:
+
+1. **`FB70`** untuk invoice FI-AR langsung; masukkan customer, tanggal, net value, tax code, dan due date.
+2. **`VF01`** untuk billing SD; sistem membentuk dokumen billing dan mengirim posting ke FI melalui account determination `VKOA`.
+3. **`FB03`** menampilkan accounting document; `FBL5N` menampilkan line items customer dan `FD10N` menampilkan saldo customer.
+
+Contoh sintetis invoice jasa internet net `$5,000` dan PPN fixture 11%:
+
+```text
+Dr. 113010 Piutang Customer                         $5,550
+    Cr. 410010 Pendapatan MRC                       $5,000
+    Cr. 215010 PPN Keluaran                           $550
+```
+
+Nomor akun, tax code, document type, posting key, dan tarif di atas adalah fixture pembelajaran. Nilai produktif harus mengikuti chart of accounts, konfigurasi pajak, edisi, lokalisasi, dan kebijakan perusahaan.
+
+### 4.3 Incoming Payment dan Tiga Perilaku Clearing
+
+`F-28` atau proses bank statement digunakan untuk penerimaan pelanggan. Sebelum posting, cocokkan customer, reference, nominal, currency, bank account, dan open invoice.
+
+| Mode | Perlakuan open item | Kapan digunakan |
+| :--- | :--- | :--- |
+| **Partial payment** | Invoice asli tetap open dengan sisa saldo; pembayaran dicatat sebagai item terkait. | Pelanggan membayar sebagian tanpa mengganti invoice asli. |
+| **Residual item** | Invoice asli di-clear penuh dan SAP membuat open item baru sebesar sisa saldo. | Perusahaan ingin satu saldo residual baru dengan referensi pembayaran. |
+| **Full clearing** | Invoice dan pembayaran saling clear; saldo piutang menjadi nol. | Pembayaran penuh atau kombinasi kas dan withholding menyelesaikan invoice. |
+
+Contoh penerimaan dengan PPh dipotong pelanggan:
+
+```text
+Dr. 111020 Bank masuk                         $5,450
+Dr. 115030 Prepaid withholding tax              $100
+    Cr. 113010 Piutang customer              $5,550
+```
+
+Jurnal tersebut hanya benar jika bukti potong sah, withholding memang milik perusahaan, dan akun serta konfigurasi withholding telah disetujui. Jangan mengubah selisih menjadi diskon tanpa dasar proses.
+
+### 4.4 Dunning dan Credit Management
+
+- **Dunning**: memilih open item yang melewati due date, menghitung dunning level, dan menghasilkan surat/notifikasi sesuai dunning procedure. `F150` adalah transaksi klasik; aplikasi Fiori dan job yang tersedia bergantung edisi serta release.
+- **Credit management**: membandingkan credit limit dengan exposure, yang dapat mencakup open receivable, sales order, delivery, dan billing exposure sesuai scope konfigurasi. `FD32` adalah transaksi klasik; S/4HANA modern dapat menggunakan **SAP Credit Management/FSCM** dan role `UKM_BP`.
+- **Credit block** tidak sama dengan dunning. Credit check mengendalikan risiko transaksi baru; dunning menagih saldo yang telah jatuh tempo.
+- Approval, scoring, tolerance, dispute, promise-to-pay, dan workflow adalah konfigurasi bisnis; lab ini hanya menghitung exposure sederhana dan tidak mengklaim implementasi FSCM penuh.
+
+### 4.5 Tabel dan Rekonsiliasi
+
+Untuk pembelajaran dan audit, gunakan konsep berikut lalu verifikasi DDIC sistem target:
+
+| Tabel / objek | Peran |
+| :--- | :--- |
+| `BSID` | Compatibility view / indeks konseptual open customer items pada skenario yang mendukungnya. |
+| `BSAD` | Compatibility view / indeks konseptual cleared customer items pada skenario yang mendukungnya. |
+| `BKPF` / `BSEG` | Header dan entry view dokumen FI; struktur dan relevansi field bergantung edisi. |
+| `ACDOCA` | Universal Journal S/4HANA untuk line item yang relevan. |
+| `KNA1` / `KNB1` / `KNVV` | Data umum customer, company-code data, dan sales-area data; S/4HANA memakai BP sebagai titik pemeliharaan utama. |
+| `BUT000` / `BUT100` | General Business Partner dan role BP. |
+
+`SE16N` pada lab hanya menampilkan proyeksi sintetis. Pada S/4HANA, gunakan CDS view, API, atau aplikasi Fiori yang dirilis bila akses tabel langsung tidak tersedia.
+
+---
+
+## 5. Sub-Modul FI-AA (Asset Accounting — Aset Tetap & Kapitalisasi Proyek)
 
 Modul **FI-AA** sangat erat kaitannya dengan **SAP MM** (pembelian aset langsung) dan **SAP PS** (kapitalisasi proyek konstruksi menjadi aset tetap).
 
-### 4.1 Konsep Kunci Arsitektur FI-AA
+### 5.1 Konsep Kunci Arsitektur FI-AA
 * **Chart of Depreciation (`EC08`):** Kumpulan depreciation area dan aturan valuasi yang ditetapkan ke company code; kode dan isinya bergantung konfigurasi/lokalisasi.
 * **Depreciation Areas:** Dapat mewakili buku komersial, pajak, atau mata uang paralel. Nomor area dan mekanisme posting bukan standar universal.
 * **Asset Class (`OAOA`):** Menentukan default dan kontrol master aset, termasuk account determination (`AO90`); masa manfaat dan depreciation key dapat bergantung master serta konfigurasi.
@@ -170,7 +245,7 @@ Modul **FI-AA** sangat erat kaitannya dengan **SAP MM** (pembelian aset langsung
 | **`4000`** | Kendaraan | 8 tahun | Sesuai aturan | Field master tergantung konfigurasi. |
 | **`8000`** | AuC | - | Contoh tanpa penyusutan | Tidak semua AuC atau kelas memakai pengaturan identik. |
 
-### 4.2 Tiga Cara Perolehan Aset Tetap (Asset Acquisition)
+### 5.2 Tiga Cara Perolehan Aset Tetap (Asset Acquisition)
 
 #### Cara 1: Pembelian Langsung via PO Modul MM (Account Assignment Category `A`)
 Digunakan untuk membeli aset yang langsung siap pakai (misal: beli 5 unit Laptop atau 1 unit Forklift):
@@ -194,14 +269,14 @@ Digunakan untuk proyek pembangunan jangka panjang (misal: membangun pabrik selam
 
 ---
 
-## 5. Perpajakan di SAP FI: PPN (`FTXP`) & PPh (*Withholding Tax*)
+## 6. Perpajakan di SAP FI: PPN (`FTXP`) & PPh (*Withholding Tax*)
 
 Kode dan tarif berikut **contoh sintetis**, bukan tarif hukum Indonesia saat ini. Pajak masukan yang dapat/tidak dapat dikreditkan dan pembebanan ke stok atau biaya bergantung tax code, transaksi dan konfigurasi.
 
-### 5.1 Mekanisme Tax Code PPN (`FTXP` & `OB40`)
+### 6.1 Mekanisme Tax Code PPN (`FTXP` & `OB40`)
 * `V0`, `V1`, `V2`, dan `A1` adalah contoh kode yang dapat dikonfigurasi; tidak ada pemetaan tarif universal. Contoh kasus memakai pajak masukan dapat dikreditkan 11% semata-mata untuk latihan.
 
-### 5.2 Extended Withholding Tax (PPh Potong/Pungut)
+### 6.2 Extended Withholding Tax (PPh Potong/Pungut)
 Contoh sintetis: jasa Rp 100.000.000, pajak masukan 11% Rp 11.000.000, dan withholding 2% Rp 2.000.000. Contoh mengasumsikan withholding diposting saat faktur; waktu posting dan dasar pajak bergantung konfigurasi dan aturan yang berlaku.
 
 ```text
@@ -218,7 +293,7 @@ Lihat bagaimana hutang bersih yang siap dibayar ke rekening vendor melalui `F110
 
 ---
 
-## 6. Checklist Tutup Buku Bulanan & Tahunan (FI Period-End Closing)
+## 7. Checklist Tutup Buku Bulanan & Tahunan (FI Period-End Closing)
 
 Urutan closing ditentukan kalender dan kebijakan perusahaan; contoh pemeriksaan:
 1. Rekonsiliasi penerimaan dan faktur serta transaksi yang masih terbuka.

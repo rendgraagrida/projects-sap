@@ -5,11 +5,11 @@ import { salesCaseActions } from '../data/sales-case';
 import { salesStepDetails } from '../data/sales-step-details';
 import { calculateAvac } from '../lib/sap-engine';
 import { formatMoney } from '../lib/sap-money';
-import { projectSapTables } from '../lib/sap-tables';
+import { projectFiArTables, projectSapTables } from '../lib/sap-tables';
 import { useSapStore } from '../store/use-sap-store';
 
 export function RightPanel() {
-  const { state, edition, view, sandboxJournal, avacBudget, selectedStepId, setSelectedStepId, simTrack, salesState, selectedSalesStepId, setSelectedSalesStepId } = useSapStore();
+  const { state, edition, view, sandboxJournal, avacBudget, selectedStepId, setSelectedStepId, simTrack, salesState, selectedSalesStepId, setSelectedSalesStepId, fiArState } = useSapStore();
   const previewMode = ['migo', 'miro', 'settlement'].includes(view);
   const [tab, setTab] = useState<'detail' | 'journal' | 'budget' | 'tables'>('detail');
   const [table, setTable] = useState('BKPF');
@@ -18,11 +18,12 @@ export function RightPanel() {
   useEffect(() => {
     setSelectedDocId('');
     if (view === 'avac') setTab('budget');
-    else if (sandboxJournal || previewMode) setTab('journal');
+    else if (sandboxJournal || previewMode || view === 'fiar') setTab('journal');
     else if (view === 'case') setTab('detail');
     else setTab('detail');
-  }, [view, sandboxJournal, previewMode, state.caseAction, salesState.salesAction, simTrack]);
+  }, [view, sandboxJournal, previewMode, state.caseAction, salesState.salesAction, simTrack, fiArState.journals.length]);
   const isSalesTrack = view === 'case' && simTrack === 'sales';
+  const isFiArLab = view === 'fiar';
   const activeAction = isSalesTrack
     ? (salesCaseActions.find(a => a.id === selectedSalesStepId) ?? salesCaseActions[Math.max(0, Math.min(salesCaseActions.length - 1, salesState.salesAction > 0 ? salesState.salesAction - 1 : 0))])
     : (view === 'case' ? caseActions.find(a => a.id === selectedStepId) ?? caseActions[Math.max(0, Math.min(caseActions.length - 1, state.caseAction > 0 ? state.caseAction - 1 : 0))] : undefined);
@@ -30,12 +31,12 @@ export function RightPanel() {
   const activeIndex = activeAction ? (isSalesTrack ? salesCaseActions.findIndex(a => a.id === activeAction.id) : caseActions.findIndex(a => a.id === activeAction.id)) : 0;
   const stepIsDone = isSalesTrack ? activeIndex < salesState.salesAction : activeIndex < state.caseAction;
   const stepIsCurrent = isSalesTrack ? activeIndex === salesState.salesAction : activeIndex === state.caseAction;
-  const journalsList = isSalesTrack ? salesState.journals : state.journals;
+  const journalsList = isSalesTrack ? salesState.journals : isFiArLab ? fiArState.journals : state.journals;
   const defaultJournal = sandboxJournal ?? (previewMode ? undefined : journalsList[journalsList.length - 1]);
   const journal = selectedDocId ? selectedDocId === 'SANDBOX' ? sandboxJournal : journalsList.find(item => item.id === selectedDocId) : defaultJournal;
   const debit = journal?.lines.filter(line => line.side === 'DEBIT').reduce((sum, line) => sum + line.amount, 0n) ?? 0n;
   const credit = journal?.lines.filter(line => line.side === 'CREDIT').reduce((sum, line) => sum + line.amount, 0n) ?? 0n;
-  const tables = projectSapTables(state, edition);
+  const tables = isFiArLab ? { ...projectSapTables(state, edition), ...projectFiArTables(fiArState) } : projectSapTables(state, edition);
   const activeTable = table in tables ? table : 'BKPF';
   const rows = (tables[activeTable] ?? []).filter(row => Object.values(row).some(value => value.toLowerCase().includes(query.toLowerCase().trim())));
   const columns = [...new Set(rows.flatMap(row => Object.keys(row)))];
@@ -43,7 +44,7 @@ export function RightPanel() {
   const total = budgets.reduce((sum, budget) => ({ ...sum, released: sum.released + budget.released, pr: sum.pr + budget.pr, po: sum.po + budget.po, heldQ: sum.heldQ + budget.heldQ, actual: sum.actual + budget.actual }), { id: 'TOTAL', label: 'Total proyek', released: 0n, pr: 0n, po: 0n, heldQ: 0n, actual: 0n });
   return <aside className="panel right" aria-label="Inspector hasil lab">
     <div className="inspector-title"><span>INSPECTOR LAB</span><b>DATA SINTETIS</b></div>
-    <nav className="panel-tabs" aria-label="Jenis hasil inspector">{([['detail', 'Detail Langkah'], ['journal','FI Jurnal'], ['budget','PS Budget'], ['tables','SE16N']] as const).map(([id, label]) => <button type="button" aria-pressed={tab === id} className={tab === id ? 'active' : ''} key={id} onClick={() => setTab(id)}>{label}</button>)}</nav>
+    <nav className="panel-tabs" aria-label="Jenis hasil inspector">{([['detail', 'Detail Langkah'], ['journal','FI Jurnal'], ['budget', isFiArLab ? 'FI-AR' : isSalesTrack ? 'Finansial SD' : 'PS Budget'], ['tables','SE16N']] as const).map(([id, label]) => <button type="button" aria-pressed={tab === id} className={tab === id ? 'active' : ''} key={id} onClick={() => setTab(id)}>{label}</button>)}</nav>
     {tab === 'detail' && <section className="step-inspector-card" aria-label="Detail dan log perubahan langkah">
       <h2>Detail & Log Perubahan</h2>
       {activeAction && activeDetail ? <>
@@ -98,15 +99,25 @@ export function RightPanel() {
       {(journalsList.length > 0 || sandboxJournal) && <label>Dokumen sumber<select value={journal?.id ?? ''} onChange={event => setSelectedDocId(event.target.value)}>
         {!journal && <option value="" disabled>Pilih riwayat kasus atau buat pratinjau</option>}
         {sandboxJournal && <option value="SANDBOX">Pratinjau aktif · {sandboxJournal.tcode}</option>}
-        {journalsList.map(item => <option key={item.id} value={item.id}>{isSalesTrack ? 'Sales' : 'Simulation'} · {item.id} · {item.tcode}</option>)}
+        {journalsList.map(item => <option key={item.id} value={item.id}>{isFiArLab ? 'FI-AR' : isSalesTrack ? 'Sales' : 'Simulation'} · {item.id} · {item.tcode}</option>)}
       </select></label>}
       {journal ? <>
-        <div className="journal-head"><b>{journal.tcode}</b><span>{journal.id === 'SANDBOX' ? 'Pratinjau, tidak diposting ke Simulation' : `${isSalesTrack ? 'Sales' : 'Simulation'} · ${journal.id}`} · {journal.type}</span><small>{journal.description}</small></div>
+        <div className="journal-head"><b>{journal.tcode}</b><span>{journal.id === 'SANDBOX' ? 'Pratinjau, tidak diposting ke Simulation' : `${isFiArLab ? 'FI-AR' : isSalesTrack ? 'Sales' : 'Simulation'} · ${journal.id}`} · {journal.type}</span><small>{journal.description}</small></div>
         {journal.lines.length ? <><div className="table-wrap"><table><caption className="sr-only">Jurnal debit dan kredit {journal.tcode}</caption><thead><tr><th>Akun / PK</th><th>Debit</th><th>Kredit</th></tr></thead><tbody>{journal.lines.map((line, index) => <tr key={index}><td><b>{line.account}</b> / {line.postingKey}<small>{line.label}{line.obyc ? ` · ${line.obyc}` : ''}{line.specialGl ? ` · Special G/L ${line.specialGl}` : ''}{line.wbs ? ` · ${line.wbs}` : ''}{line.costCenter ? ` · CC ${line.costCenter}` : ''}{line.order ? ` · Order ${line.order}` : ''}{line.network ? ` · Network ${line.network}` : ''}</small></td><td>{line.side === 'DEBIT' ? formatMoney(line.amount) : '—'}</td><td>{line.side === 'CREDIT' ? formatMoney(line.amount) : '—'}</td></tr>)}</tbody><tfoot><tr><th>Total</th><td>{formatMoney(debit)}</td><td>{formatMoney(credit)}</td></tr></tfoot></table></div><p role="status" className={debit === credit ? 'balance' : 'notice error'}>{debit === credit ? 'Debit = Kredit · seimbang' : 'Jurnal tidak seimbang'}</p></> : <p role="status">Tidak ada jurnal FI untuk pratinjau ini.</p>}
       </> : <p>{previewMode ? 'Belum ada hasil pratinjau aktif. Isi form dan jalankan perhitungannya; riwayat Simulation tetap dapat dipilih.' : 'Jalankan aksi Simulation untuk melihat jurnalnya.'}</p>}
     </>}
     {tab === 'budget' && <>
-      {isSalesTrack ? <>
+      {isFiArLab ? <>
+        <h2>FI-AR · Subledger Piutang</h2><p>Ringkasan invoice, open item, clearing, dunning, dan credit exposure pada data sintetis lab.</p>
+        <div className="budget-card">
+          <strong>{fiArState.invoice ? `Customer ${fiArState.invoice.customer}` : 'Belum ada customer invoice'}</strong><small>Credit status: {fiArState.creditStatus}</small>
+          <div className="budget-row"><span>Invoice gross</span><b>{formatMoney(fiArState.invoice?.gross ?? 0n)}</b></div>
+          <div className="budget-row"><span>Open receivable</span><b>{formatMoney(fiArState.openItems.reduce((sum, item) => sum + item.remaining, 0n))}</b></div>
+          <div className="budget-row"><span>Credit limit</span><b>{formatMoney(fiArState.creditLimit)}</b></div>
+          <div className="budget-row"><span>Credit exposure</span><b>{formatMoney(fiArState.creditExposure)}</b></div>
+          <div className="budget-row"><span>Dunning result</span><b>{fiArState.dunningEligible ? `Eligible · Level ${fiArState.dunningLevel}` : 'Tidak eligible'}</b></div>
+        </div>
+      </> : isSalesTrack ? <>
         <h2>Finansial Penjualan SD (O2C)</h2><p>Rekapitulasi nilai pesanan komersial, pendapatan terakru, piutang pelanggan, dan realisasi kas.</p>
         <div className="budget-card">
           <strong>MetroNexia Enterprise O2C</strong><small>Status: {salesState.status}</small>

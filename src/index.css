@@ -114,6 +114,13 @@ pre code,.markdown pre code{white-space:pre !important;word-break:normal !import
 .sales-metric-card{padding:9px;background:#f8fafc;border:1px solid #e1eaf2;border-radius:7px;text-align:center}
 .sales-metric-card span{display:block;font-size:10.5px;color:#627d98;text-transform:uppercase;font-weight:700;letter-spacing:.02em;margin-bottom:2px}
 .sales-metric-card b{font-size:14px;color:#173451}
+.fiar-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:14px 0 20px}
+.fiar-lab-section{margin:18px 0;padding-top:14px;border-top:1px solid #dce6ef}
+.fiar-lab-section h2{font-size:17px;color:#173451;margin:0 0 6px}
+.fiar-lab-section>p{color:#425a73;margin:4px 0 12px}
+.fiar-lab-section form{display:grid;gap:9px;align-content:start}
+.fiar-status-approved{border-color:#a8dfc6;background:#f2fbf6}
+.fiar-status-blocked{border-color:#efb0b0;background:#fff6f6}
 @media(max-width:700px){.e2e-stage-card{grid-template-columns:36px minmax(0,1fr);gap:10px;padding:12px}.e2e-stage-number{width:34px;height:34px;font-size:12px}.e2e-stage-card:not(:last-child)::after{left:16px}.e2e-stage-card h2{font-size:16px}.e2e-stage-grid{grid-template-columns:1fr}.e2e-stage-footer{display:block}.e2e-stage-footer>span{display:block;margin-top:7px}.telco-material-tree{grid-template-columns:1fr}.telco-material-node.level-1{grid-column:auto}.telco-material-node.level-2{margin-left:12px}}
 .reader-heading{gap:12px;margin-bottom:14px}
 .reader-heading button{letter-spacing:normal}

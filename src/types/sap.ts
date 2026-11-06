@@ -13,3 +13,28 @@ export interface CaseAction { step: number; id: string; title: string; tcode: st
 export type SimTrack = 'infra' | 'sales';
 export interface SalesCaseAction { step: number; id: string; title: string; tcode: string; description: string }
 export interface SalesState { salesAction: number; status: string; contractValue: bigint; receivables: bigint; revenueMrc: bigint; revenueOtc: bigint; taxOutput: bigint; cashCollected: bigint; journals: Journal[]; tables: Record<string, Record<string, string>[]>; error: string | null }
+export type ArSettlementMode = 'partial' | 'residual' | 'full';
+export type ArCreditStatus = 'NOT_CHECKED' | 'APPROVED' | 'BLOCKED';
+export interface ArItem {
+  id: string;
+  customer: string;
+  documentType: 'DR' | 'RV' | 'DZ';
+  amount: bigint;
+  remaining: bigint;
+  dueDate: string;
+  status: 'OPEN' | 'CLEARED';
+}
+export interface FiArState {
+  invoice: { id: string; customer: string; net: bigint; tax: bigint; gross: bigint; dueDate: string } | null;
+  openItems: ArItem[];
+  clearedItems: ArItem[];
+  journals: Journal[];
+  lastPayment: { mode: ArSettlementMode; cash: bigint; withholding: bigint; applied: bigint; residual: bigint } | null;
+  dunningLevel: number;
+  dunningEligible: boolean;
+  creditLimit: bigint;
+  salesExposure: bigint;
+  creditExposure: bigint;
+  creditStatus: ArCreditStatus;
+  error: string | null;
+}

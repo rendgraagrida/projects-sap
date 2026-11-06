@@ -281,6 +281,16 @@ export const dictionaryMetadata: Record<string, DictionaryMetaItem> = {
       "Customer Account Reports (Subledger Piutang):\n• Fungsi FD10N: Menampilkan saldo pelanggan per periode pembukuan.\n• Fungsi FBL5N: Menampilkan item transaksi pelanggan menurut seleksi open, cleared, atau all items.",
     moduleId: "02",
   },
+  "F150": {
+    explanation:
+      "Dunning Run (Penagihan Piutang Jatuh Tempo):\n• Fungsi: Memilih open item customer yang melewati due date dan menghasilkan dunning proposal/notices berdasarkan dunning procedure.\n• Level: Level 1–4 pada contoh hanya fixture; interval, fee, grace period, dan bentuk surat mengikuti konfigurasi perusahaan.\n• Batas penerapan: F150 adalah transaksi klasik; aplikasi Fiori, job, dan integrasi correspondence bergantung edisi serta release.",
+    moduleId: "02",
+  },
+  "FD32 / UKM_BP": {
+    explanation:
+      "Customer Credit Management:\n• Fungsi FD32: Memelihara credit master klasik customer pada sistem yang masih menggunakannya.\n• Fungsi UKM_BP: Memelihara data Business Partner untuk SAP Credit Management/FSCM pada skenario S/4HANA yang relevan.\n• Batas penerapan: Credit limit, exposure, scoring, check rule, block, workflow, dan aplikasi pengganti mengikuti deployment, release, lisensi, dan konfigurasi; keduanya bukan padanan universal.",
+    moduleId: "02",
+  },
   "AS01 / AS02 / AS03": {
     explanation:
       "Fixed Asset Master Data (Master Data Aset):\n• Fungsi Transaksi: AS01 membuat, AS02 mengubah, dan AS03 menampilkan data master aset tetap.\n• Atribut Kritis: Asset class, depreciation area, masa manfaat ekonomis, dan cost center ditentukan berdasarkan data dan konfigurasi.\n• Tabel Database: ANLA menyimpan data umum aset dan ANLB mencakup ketentuan depresiasi.",

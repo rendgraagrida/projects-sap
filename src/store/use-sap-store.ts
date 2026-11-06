@@ -4,9 +4,10 @@ import { dictionaries, modules, quiz } from '../data/curriculum';
 import { executeCaseAction, initialSapState, parseTCodeCommand } from '../lib/sap-engine';
 import { dictionaryCodes, type DictionaryEntry } from '../lib/study-engine';
 import { executeSalesCaseAction, initialSalesState, salesCaseActions } from '../data/sales-case';
-import type { Budget, Journal, SalesState, SapEdition, SapState, SimTrack } from '../types/sap';
+import { checkCredit, initialFiArState, postCustomerInvoice, postIncomingPayment, runDunning } from '../lib/fi-ar-engine';
+import type { Budget, FiArState, Journal, SalesState, SapEdition, SapState, SimTrack } from '../types/sap';
 
-export type View = 'reader' | 'dictionary' | 'quiz' | 'case' | 'e2e' | 'migo' | 'miro' | 'avac' | 'settlement';
+export type View = 'reader' | 'dictionary' | 'quiz' | 'case' | 'e2e' | 'migo' | 'miro' | 'avac' | 'settlement' | 'fiar';
 export type StudyTab = 'modules' | 'dictionary' | 'quiz';
 interface Store {
   edition: SapEdition;
@@ -17,6 +18,7 @@ interface Store {
   readerRequest: number;
   completed: string[];
   state: SapState;
+  fiArState: FiArState;
   sandboxJournal: Journal | null;
   avacBudget: Budget;
   selectedDictionary: DictionaryEntry | null;
@@ -35,6 +37,12 @@ interface Store {
   nextSalesCase: () => void;
   runSalesCase: () => void;
   resetSalesCase: () => void;
+  setFiArState: (state: FiArState) => void;
+  postFiArInvoice: (input: Parameters<typeof postCustomerInvoice>[1]) => void;
+  postFiArPayment: (input: Parameters<typeof postIncomingPayment>[1]) => void;
+  runFiArDunning: (runDate: string, level: number) => void;
+  checkFiArCredit: (creditLimit: bigint, salesExposure: bigint) => void;
+  resetFiAr: () => void;
   setEdition: (edition: SapEdition) => void;
   setView: (view: View) => void;
   setStudyTab: (tab: StudyTab) => void;
@@ -58,6 +66,7 @@ const route: Record<string, View> = {
   CJ20N: 'case', ME21N: 'case', ME29N: 'case', ML81N: 'case',
   'F-48': 'case', 'F-54': 'case', F110: 'case',
   CJ30: 'avac', CJ32: 'avac', CJ88: 'settlement', AFAB: 'settlement',
+  'F-28': 'fiar', FB70: 'fiar', F150: 'fiar', FD32: 'fiar', UKM_BP: 'fiar',
   VA01: 'e2e', VA02: 'e2e', VA03: 'e2e',
   VF01: 'e2e', VF02: 'e2e', VF03: 'e2e', VF04: 'e2e',
   VKOA: 'e2e', VK11: 'e2e',
@@ -79,8 +88,15 @@ export const useSapStore = create<Store>((set, get) => ({
   simTrack: 'infra',
   setSimTrack: simTrack => set({ simTrack, notice: '' }),
   salesState: initialSalesState(), selectedSalesStepId: null,
+  fiArState: initialFiArState(),
   setSelectedSalesStepId: selectedSalesStepId => set({ selectedSalesStepId }),
   setSelectedStepId: selectedStepId => set({ selectedStepId }),
+  setFiArState: fiArState => set({ fiArState, sandboxJournal: null, notice: '' }),
+  postFiArInvoice: input => set(s => { const result = postCustomerInvoice(s.fiArState, input); return result.ok ? { fiArState: result.value, notice: '' } : { notice: result.error }; }),
+  postFiArPayment: input => set(s => { const result = postIncomingPayment(s.fiArState, input); return result.ok ? { fiArState: result.value, notice: '' } : { notice: result.error }; }),
+  runFiArDunning: (runDate, level) => set(s => { const result = runDunning(s.fiArState, runDate, level); return result.ok ? { fiArState: result.value, notice: '' } : { notice: result.error }; }),
+  checkFiArCredit: (creditLimit, salesExposure) => set(s => { const result = checkCredit(s.fiArState, creditLimit, salesExposure); return result.ok ? { fiArState: result.value, notice: '' } : { notice: result.error }; }),
+  resetFiAr: () => set({ fiArState: initialFiArState(), sandboxJournal: null, notice: '' }),
   avacBudget: { id: 'SANDBOX-WBS', label: 'Sandbox AVAC', released: 10000000n, pr: 0n, po: 0n, heldQ: 0n, actual: 0n },
   selectedDictionary: null, quizAnswers: {}, activeQuiz: 'case-01',
   sessions: ['SAP Easy Access'], activeSession: 0, notice: '',

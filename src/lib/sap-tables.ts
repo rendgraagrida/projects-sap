@@ -1,4 +1,4 @@
-import type { SapEdition, SapState } from '../types/sap';
+import type { FiArState, SapEdition, SapState } from '../types/sap';
 import { formatMoney } from './sap-money';
 
 export function projectSapTables(state: SapState, edition: SapEdition): Record<string, Record<string, string>[]> {
@@ -43,4 +43,22 @@ export function projectSapTables(state: SapState, edition: SapEdition): Record<s
     tables.MSEG = material;
   }
   return tables;
+}
+
+export function projectFiArTables(state: FiArState): Record<string, Record<string, string>[]> {
+  const itemRow = (item: FiArState['openItems'][number]) => ({
+    KUNNR: item.customer,
+    BELNR: item.id,
+    BLART: item.documentType,
+    DMBTR: formatMoney(item.amount),
+    REST: formatMoney(item.remaining),
+    ZFBDT: item.dueDate,
+    STATUS: item.status,
+  });
+  return {
+    BSID: state.openItems.map(itemRow),
+    BSAD: state.clearedItems.map(itemRow),
+    KNB1: state.invoice ? [{ KUNNR: state.invoice.customer, BUKRS: '1000', AKONT: '113010', ZTERM: 'Z030' }] : [],
+    KNKK: state.invoice ? [{ KUNNR: state.invoice.customer, KLIMK: formatMoney(state.creditLimit), KLIME: formatMoney(state.creditExposure), CMPSA: state.creditStatus }] : [],
+  };
 }
