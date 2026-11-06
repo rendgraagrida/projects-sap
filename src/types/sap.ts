@@ -10,3 +10,6 @@ export interface Asset { id: string; assetClass: '8000' | '2000' | '3000'; value
 export interface SapState { budgets: Budget[]; journals: Journal[]; assets: Asset[]; caseAction: number; caseStatus: string; stockQ: bigint; stockGeneral: bigint; tables: Record<string, Record<string, string>[]>; error: string | null }
 export type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 export interface CaseAction { step: number; id: string; title: string; tcode: string; description: string }
+export type SimTrack = 'infra' | 'sales';
+export interface SalesCaseAction { step: number; id: string; title: string; tcode: string; description: string }
+export interface SalesState { salesAction: number; status: string; contractValue: bigint; receivables: bigint; revenueMrc: bigint; revenueOtc: bigint; taxOutput: bigint; cashCollected: bigint; journals: Journal[]; tables: Record<string, Record<string, string>[]>; error: string | null }

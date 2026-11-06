@@ -3,7 +3,8 @@ import { caseActions } from '../data/capex-case';
 import { dictionaries, modules, quiz } from '../data/curriculum';
 import { executeCaseAction, initialSapState, parseTCodeCommand } from '../lib/sap-engine';
 import { dictionaryCodes, type DictionaryEntry } from '../lib/study-engine';
-import type { Budget, Journal, SapEdition, SapState } from '../types/sap';
+import { executeSalesCaseAction, initialSalesState, salesCaseActions } from '../data/sales-case';
+import type { Budget, Journal, SalesState, SapEdition, SapState, SimTrack } from '../types/sap';
 
 export type View = 'reader' | 'dictionary' | 'quiz' | 'case' | 'e2e' | 'migo' | 'miro' | 'avac' | 'settlement';
 export type StudyTab = 'modules' | 'dictionary' | 'quiz';
@@ -24,8 +25,16 @@ interface Store {
   sessions: string[];
   activeSession: number;
   notice: string;
+  simTrack: SimTrack;
+  setSimTrack: (track: SimTrack) => void;
   selectedStepId: string | null;
   setSelectedStepId: (id: string | null) => void;
+  salesState: SalesState;
+  selectedSalesStepId: string | null;
+  setSelectedSalesStepId: (id: string | null) => void;
+  nextSalesCase: () => void;
+  runSalesCase: () => void;
+  resetSalesCase: () => void;
   setEdition: (edition: SapEdition) => void;
   setView: (view: View) => void;
   setStudyTab: (tab: StudyTab) => void;
@@ -67,6 +76,10 @@ function sessionNavigation(tcode: string): Partial<Store> {
 export const useSapStore = create<Store>((set, get) => ({
   edition: 'S4', view: 'reader', studyTab: 'modules', moduleId: '01', readerAnchor: null, readerRequest: 0,
   completed: [], state: initialSapState(), sandboxJournal: null, selectedStepId: null,
+  simTrack: 'infra',
+  setSimTrack: simTrack => set({ simTrack, notice: '' }),
+  salesState: initialSalesState(), selectedSalesStepId: null,
+  setSelectedSalesStepId: selectedSalesStepId => set({ selectedSalesStepId }),
   setSelectedStepId: selectedStepId => set({ selectedStepId }),
   avacBudget: { id: 'SANDBOX-WBS', label: 'Sandbox AVAC', released: 10000000n, pr: 0n, po: 0n, heldQ: 0n, actual: 0n },
   selectedDictionary: null, quizAnswers: {}, activeQuiz: 'case-01',
@@ -110,6 +123,23 @@ export const useSapStore = create<Store>((set, get) => ({
     set({ state, selectedStepId: caseActions[caseActions.length - 1]?.id ?? null, sandboxJournal: null, notice: '' });
   },
   resetCase: () => set({ state: initialSapState(), selectedStepId: null, sandboxJournal: null, notice: '' }),
+  nextSalesCase: () => set(s => {
+    const currentAction = salesCaseActions[s.salesState.salesAction];
+    const result = executeSalesCaseAction(s.salesState);
+    return result.ok
+      ? { salesState: result.value, selectedSalesStepId: currentAction?.id ?? null, notice: '' }
+      : { notice: result.error };
+  }),
+  runSalesCase: () => {
+    let salesState = get().salesState;
+    while (salesState.salesAction < salesCaseActions.length) {
+      const result = executeSalesCaseAction(salesState);
+      if (!result.ok) { set({ salesState, notice: result.error }); return; }
+      salesState = result.value;
+    }
+    set({ salesState, selectedSalesStepId: salesCaseActions[salesCaseActions.length - 1]?.id ?? null, notice: '' });
+  },
+  resetSalesCase: () => set({ salesState: initialSalesState(), selectedSalesStepId: null, notice: '' }),
   setSandboxJournal: sandboxJournal => set({ sandboxJournal }),
   setAvacBudget: avacBudget => set({ avacBudget }),
   selectSession: index => set(s => {

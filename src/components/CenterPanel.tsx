@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { caseActions } from '../data/capex-case';
+import { salesCaseActions } from '../data/sales-case';
 import { dictionaries, modules, quiz } from '../data/curriculum';
 import { accounts, taxCodes } from '../data/sap-config';
 import { simulateMigo } from '../lib/migo-engine';
@@ -208,25 +209,85 @@ export function CenterPanel() {
       <button type="button" disabled={!Object.keys(store.quizAnswers).length} onClick={store.resetQuiz}>Ulangi seluruh latihan</button>
     </section>}
     {store.view === 'case' && <>
-      <div className="eyebrow">KASUS SINTETIS · INFRANEXIA / METRONEXIA / MM / PS / FI</div><h1>Deployment Infrastruktur Akses MetroNexia</h1>
-      <p>Contoh pembelajaran bisnis telco InfraNexia dengan layanan internet MetroNexia. Budget $100,000, vendor, akun, pajak 11%, withholding 2%, WBS, dan umur manfaat adalah asumsi edukasi sintetis untuk simulasi infrastruktur; ini bukan data internal perusahaan dan tidak mengeksekusi transaksi SAP atau bank. Untuk alur penjualan MRC/OTC, gunakan tab Flow E2E.</p>
-      <div className="actions"><button type="button" className="primary" disabled={store.state.caseAction >= caseActions.length} onClick={store.nextCase}>Jalankan aksi berikutnya</button><button type="button" disabled={store.state.caseAction >= caseActions.length} onClick={store.runCase}>Jalankan semua aksi tersisa</button><button type="button" disabled={store.state.caseAction === 0} onClick={store.resetCase}>Reset kasus</button></div>
-      <p role="status">{store.state.caseAction} / {caseActions.length} aksi selesai · Status {store.state.caseStatus}</p>
-      <div className="step-list">{caseActions.map((action, index) => {
-        const isDone = index < store.state.caseAction;
-        const isCurrent = index === store.state.caseAction;
-        const isSelected = store.selectedStepId ? store.selectedStepId === action.id : (store.state.caseAction > 0 ? index === store.state.caseAction - 1 : index === 0);
-        return <div className={`step ${isDone ? 'done' : isCurrent ? 'current' : ''} ${isSelected ? 'selected' : ''}`} key={action.id} role="button" tabIndex={0} aria-current={isSelected ? 'step' : undefined} onClick={() => store.setSelectedStepId(action.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); store.setSelectedStepId(action.id); } }}>
-          <span className="step-num">{isDone ? '✓' : action.step}</span>
-          <div className="step-content">
-            <div className="step-header-line">
-              <strong>{action.title}</strong>
-              <span className={`step-status-tag ${isDone ? 'done' : isCurrent ? 'current' : 'pending'}`}>{isDone ? '✓ Selesai' : isCurrent ? '⏳ Langkah berikutnya' : '🔒 Menunggu'}</span>
+      <div className="sim-track-switcher" role="tablist" aria-label="Pilihan Alur Simulasi">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={store.simTrack === 'infra'}
+          className={`sim-track-btn ${store.simTrack === 'infra' ? 'active' : ''}`}
+          onClick={() => store.setSimTrack('infra')}
+        >
+          🏗️ Track 1: Infrastruktur Akses MetroNexia (MM • PS • FI)
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={store.simTrack === 'sales'}
+          className={`sim-track-btn ${store.simTrack === 'sales' ? 'active' : ''}`}
+          onClick={() => store.setSimTrack('sales')}
+        >
+          💼 Track 2: Proses Penjualan Internet MetroNexia (SD • FI-AR)
+        </button>
+      </div>
+
+      {store.simTrack === 'infra' ? <>
+        <div className="eyebrow">KASUS SINTETIS · INFRANEXIA / METRONEXIA / MM / PS / FI</div>
+        <h1>Deployment Infrastruktur Akses MetroNexia</h1>
+        <p>Simulasi pembangunan infrastruktur jaringan fiber optik backbone regional InfraNexia. Budget $100,000, alokasi WBS sipil & material, pengadaan vendor, down payment, goods receipt, BAST jasa, kapitalisasi AuC hingga aset tetap final dan depresiasi.</p>
+        <div className="actions">
+          <button type="button" className="primary" disabled={store.state.caseAction >= caseActions.length} onClick={store.nextCase}>Jalankan aksi berikutnya</button>
+          <button type="button" disabled={store.state.caseAction >= caseActions.length} onClick={store.runCase}>Jalankan semua aksi tersisa</button>
+          <button type="button" disabled={store.state.caseAction === 0} onClick={store.resetCase}>Reset kasus</button>
+        </div>
+        <p role="status">{store.state.caseAction} / {caseActions.length} aksi selesai · Status {store.state.caseStatus}</p>
+        <div className="step-list">{caseActions.map((action, index) => {
+          const isDone = index < store.state.caseAction;
+          const isCurrent = index === store.state.caseAction;
+          const isSelected = store.selectedStepId ? store.selectedStepId === action.id : (store.state.caseAction > 0 ? index === store.state.caseAction - 1 : index === 0);
+          return <div className={`step ${isDone ? 'done' : isCurrent ? 'current' : ''} ${isSelected ? 'selected' : ''}`} key={action.id} role="button" tabIndex={0} aria-current={isSelected ? 'step' : undefined} onClick={() => store.setSelectedStepId(action.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); store.setSelectedStepId(action.id); } }}>
+            <span className="step-num">{isDone ? '✓' : action.step}</span>
+            <div className="step-content">
+              <div className="step-header-line">
+                <strong>{action.title}</strong>
+                <span className={`step-status-tag ${isDone ? 'done' : isCurrent ? 'current' : 'pending'}`}>{isDone ? '✓ Selesai' : isCurrent ? '⏳ Langkah berikutnya' : '🔒 Menunggu'}</span>
+              </div>
+              <small>{action.tcode} · {action.description}</small>
             </div>
-            <small>{action.tcode} · {action.description}</small>
-          </div>
-        </div>;
-      })}</div>
+          </div>;
+        })}</div>
+      </> : <>
+        <div className="eyebrow">KASUS SINTETIS · INFRANEXIA / METRONEXIA / SD / FI-AR</div>
+        <h1>Deployment Proses Penjualan Internet MetroNexia</h1>
+        <p>Simulasi siklus komersial Order-to-Cash (O2C) penjualan paket internet MetroNexia ke pelanggan enterprise. Menggunakan modul SAP SD: Quotation (VA21), Sales Order (VA01) dengan pemisahan Material 2 MRC ($5,000/bln) dan Material 3 OTC ($1,500 sekali), Outbound Delivery perangkat CPE (VL01N), Billing Document OTC dan MRC (VF01) via otomatisasi VKOA (Doc. Type RV), hingga pelunasan piutang pelanggan (F-28 Doc. Type DZ).</p>
+        <div className="sales-metrics-grid">
+          <div className="sales-metric-card"><span>Nilai Kontrak</span><b>{formatMoney(store.salesState.contractValue)}</b></div>
+          <div className="sales-metric-card"><span>Tagihan OTC</span><b>{formatMoney(store.salesState.revenueOtc)}</b></div>
+          <div className="sales-metric-card"><span>Tagihan MRC</span><b>{formatMoney(store.salesState.revenueMrc)}</b></div>
+          <div className="sales-metric-card"><span>Piutang Terbuka</span><b>{formatMoney(store.salesState.receivables)}</b></div>
+          <div className="sales-metric-card"><span>Kas Diterima</span><b>{formatMoney(store.salesState.cashCollected)}</b></div>
+        </div>
+        <div className="actions">
+          <button type="button" className="primary" disabled={store.salesState.salesAction >= salesCaseActions.length} onClick={store.nextSalesCase}>Jalankan aksi berikutnya</button>
+          <button type="button" disabled={store.salesState.salesAction >= salesCaseActions.length} onClick={store.runSalesCase}>Jalankan semua aksi tersisa</button>
+          <button type="button" disabled={store.salesState.salesAction === 0} onClick={store.resetSalesCase}>Reset simulasi penjualan</button>
+        </div>
+        <p role="status">{store.salesState.salesAction} / {salesCaseActions.length} aksi selesai · Status {store.salesState.status}</p>
+        <div className="step-list">{salesCaseActions.map((action, index) => {
+          const isDone = index < store.salesState.salesAction;
+          const isCurrent = index === store.salesState.salesAction;
+          const isSelected = store.selectedSalesStepId ? store.selectedSalesStepId === action.id : (store.salesState.salesAction > 0 ? index === store.salesState.salesAction - 1 : index === 0);
+          return <div className={`step ${isDone ? 'done' : isCurrent ? 'current' : ''} ${isSelected ? 'selected' : ''}`} key={action.id} role="button" tabIndex={0} aria-current={isSelected ? 'step' : undefined} onClick={() => store.setSelectedSalesStepId(action.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); store.setSelectedSalesStepId(action.id); } }}>
+            <span className="step-num">{isDone ? '✓' : action.step}</span>
+            <div className="step-content">
+              <div className="step-header-line">
+                <strong>{action.title}</strong>
+                <span className={`step-status-tag ${isDone ? 'done' : isCurrent ? 'current' : 'pending'}`}>{isDone ? '✓ Selesai' : isCurrent ? '⏳ Langkah berikutnya' : '🔒 Menunggu'}</span>
+              </div>
+              <small>{action.tcode} · {action.description}</small>
+            </div>
+          </div>;
+        })}</div>
+      </>}
     </>}
     {store.view === 'migo' && <MigoLab />}
     {store.view === 'miro' && <MiroLab />}

@@ -118,3 +118,24 @@ describe('CAPEX and sandbox isolation', () => {
     expect(useSapStore.getState().state.assets).toEqual(state.assets);
   });
 });
+describe('Sales simulation track integration', () => {
+  test('switches tracks and runs sales case independently of infra case', () => {
+    const store = useSapStore.getState();
+    store.setSimTrack('sales');
+    expect(useSapStore.getState().simTrack).toBe('sales');
+    expect(useSapStore.getState().salesState.salesAction).toBe(0);
+
+    store.nextSalesCase();
+    expect(useSapStore.getState().salesState.salesAction).toBe(1);
+    expect(useSapStore.getState().salesState.status).toBe('QUOT');
+
+    store.runSalesCase();
+    expect(useSapStore.getState().salesState.salesAction).toBe(6);
+    expect(useSapStore.getState().salesState.status).toBe('PAID CLSD');
+    expect(useSapStore.getState().salesState.cashCollected).toBe(721500n);
+
+    store.resetSalesCase();
+    expect(useSapStore.getState().salesState.salesAction).toBe(0);
+    expect(useSapStore.getState().salesState.receivables).toBe(0n);
+  });
+});
